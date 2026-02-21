@@ -1,0 +1,15 @@
+{
+  "name": "StudioLink",
+  "tree": {
+    "$className": "Folder",
+    "Main": {
+      "$path": "src/Main.server.luau"
+    },
+    "Tools": {
+      "$path": "src/Tools"
+    },
+    "Utils": {
+      "$path": "src/Utils"
+    }
+  }
+}

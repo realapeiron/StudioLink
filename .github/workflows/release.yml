@@ -1,0 +1,232 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: studiolink
+
+jobs:
+  # ═══════════════════════════════════════════
+  # macOS — Universal Binary (Apple Silicon + Intel)
+  # ═══════════════════════════════════════════
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: macos-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: macos-cargo-
+
+      - name: Build for Apple Silicon (aarch64)
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Build for Intel (x86_64)
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Create Universal Binary
+        run: |
+          mkdir -p dist
+          lipo -create \
+            target/aarch64-apple-darwin/release/${{ env.BINARY_NAME }} \
+            target/x86_64-apple-darwin/release/${{ env.BINARY_NAME }} \
+            -output dist/${{ env.BINARY_NAME }}
+          chmod +x dist/${{ env.BINARY_NAME }}
+
+      - name: Package macOS release
+        run: |
+          cd dist
+          zip -9 macOS-${{ env.BINARY_NAME }}.zip ${{ env.BINARY_NAME }}
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binary
+          path: dist/macOS-${{ env.BINARY_NAME }}.zip
+
+  # ═══════════════════════════════════════════
+  # Windows — x86_64 EXE
+  # ═══════════════════════════════════════════
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: windows-cargo-
+
+      - name: Build for Windows
+        run: cargo build --release
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary
+          path: target/release/${{ env.BINARY_NAME }}.exe
+
+  # ═══════════════════════════════════════════
+  # Linux — x86_64 (bonus, for Linux users)
+  # ═══════════════════════════════════════════
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: linux-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: linux-cargo-
+
+      - name: Build for Linux
+        run: cargo build --release
+
+      - name: Package Linux release
+        run: |
+          mkdir -p dist
+          cp target/release/${{ env.BINARY_NAME }} dist/
+          chmod +x dist/${{ env.BINARY_NAME }}
+          cd dist
+          tar -czf linux-${{ env.BINARY_NAME }}.tar.gz ${{ env.BINARY_NAME }}
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary
+          path: dist/linux-${{ env.BINARY_NAME }}.tar.gz
+
+  # ═══════════════════════════════════════════
+  # Build Roblox Plugin (.rbxm)
+  # ═══════════════════════════════════════════
+  build-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rojo
+        uses: ok-nick/setup-aftman@v0.4.2
+        with:
+          version: "v0.3.0"
+
+      - name: Install Rojo via Aftman
+        run: |
+          aftman init || true
+          aftman add rojo-rbx/rojo || true
+          aftman install
+
+      - name: Build Plugin
+        run: |
+          cd plugin
+          rojo build -o ../StudioLink.rbxm
+
+      - name: Upload Plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin
+          path: StudioLink.rbxm
+
+  # ═══════════════════════════════════════════
+  # Create GitHub Release
+  # ═══════════════════════════════════════════
+  release:
+    needs: [build-macos, build-windows, build-linux, build-plugin]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp artifacts/macos-binary/macOS-${{ env.BINARY_NAME }}.zip release/
+          cp artifacts/windows-binary/${{ env.BINARY_NAME }}.exe release/
+          cp artifacts/linux-binary/linux-${{ env.BINARY_NAME }}.tar.gz release/
+          cp artifacts/plugin/StudioLink.rbxm release/
+
+          # Generate SHA256 checksums
+          cd release
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=v${VERSION}-build.${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "Release version: v${VERSION}-build.${{ github.run_number }}"
+
+      - name: Get commit message
+        id: commit
+        run: |
+          MSG=$(git log -1 --pretty=%B | head -1)
+          echo "message=${MSG}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          body: |
+            **${{ steps.version.outputs.version }}**
+
+            `${{ github.sha }}`
+
+            ${{ steps.commit.outputs.message }}
+
+            ### Assets
+            - **macOS-studiolink.zip** — Universal binary (Apple Silicon + Intel)
+            - **studiolink.exe** — Windows x86_64
+            - **linux-studiolink.tar.gz** — Linux x86_64
+            - **StudioLink.rbxm** — Roblox Studio Plugin
+
+            ### Installation
+            1. Download the binary for your platform
+            2. Download `StudioLink.rbxm` and place it in your Roblox Studio Plugins folder
+            3. Add StudioLink to your AI client's MCP config
+          files: |
+            release/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
