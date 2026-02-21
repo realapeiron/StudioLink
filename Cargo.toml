@@ -1,0 +1,39 @@
+[package]
+name = "studiolink"
+version = "0.1.0"
+edition = "2021"
+description = "Advanced Roblox Studio MCP Server — 36 tools for professional game development"
+license = "MIT"
+repository = "https://github.com/realapeiron/StudioLink"
+keywords = ["roblox", "mcp", "studio", "gamedev"]
+categories = ["development-tools", "game-development"]
+
+[[bin]]
+name = "studiolink"
+path = "src/main.rs"
+
+[dependencies]
+# MCP Protocol
+rmcp = { version = "0.16", features = ["server", "transport-io"] }
+
+# Web Framework
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+
+# Async Runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+
+# HTTP Client (for proxy mode)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+color-eyre = "0.6"
+clap = { version = "4", features = ["derive"] }
