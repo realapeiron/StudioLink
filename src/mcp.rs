@@ -145,6 +145,14 @@ pub struct DocsGenerateParams {
     pub path: Option<String>,
 }
 
+// --- Workspace ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct WorkspaceAnalyzeParams {
+    /// Optional path to limit analysis scope (e.g. "ServerScriptService")
+    pub path: Option<String>,
+}
+
 // --- Session ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -519,6 +527,21 @@ impl StudioLinkMcp {
         params: Parameters<DocsGenerateParams>,
     ) -> String {
         match tools::docs::docs_generate(&self.state, params.0.path.as_deref()).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // WORKSPACE ANALYSIS
+    // ═══════════════════════════════════════════
+
+    #[tool(description = "Comprehensive workspace analysis: coding style (naming, indent, strict mode, type annotations), architecture (framework, services, folder structure), script statistics, issues (deprecated APIs, security, memory leaks, optimization), dependencies (circular, dead modules), and detected patterns/libraries. Run this first on any new workspace.")]
+    async fn workspace_analyze(
+        &self,
+        params: Parameters<WorkspaceAnalyzeParams>,
+    ) -> String {
+        match tools::workspace::workspace_analyze(&self.state, params.0.path.as_deref()).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

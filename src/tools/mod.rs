@@ -11,6 +11,7 @@ pub mod animation;
 pub mod network;
 pub mod ui_inspector;
 pub mod docs;
+pub mod workspace;
 pub mod session;
 
 use serde_json::Value;
@@ -49,8 +50,21 @@ pub async fn send_to_plugin(
     let mut rx = {
         let mut s = state.lock().await;
 
+        // Auto-recover: if active session is stale, clean up and find a live one
         if !s.is_plugin_connected() {
-            return Err(StudioLinkError::PluginNotConnected);
+            s.cleanup_expired();
+
+            // Try to find any live session and auto-switch to it
+            let live_session = s.sessions.iter()
+                .find(|(_, sess)| sess.last_heartbeat.elapsed().as_secs() < 30)
+                .map(|(id, _)| id.clone());
+
+            if let Some(live_id) = live_session {
+                tracing::info!("Auto-recovered to live session: {}", live_id);
+                s.active_session = Some(live_id);
+            } else {
+                return Err(StudioLinkError::PluginNotConnected);
+            }
         }
 
         match s.queue_request(tool, args) {

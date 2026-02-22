@@ -91,6 +91,9 @@ impl AppState {
 
     /// Register a new Studio session (called when a plugin connects)
     pub fn register_session(&mut self, reg: SessionRegistration) -> String {
+        // Clean up stale sessions before registering (prevents zombie buildup)
+        self.cleanup_expired();
+
         let (notify_tx, notify_rx) = watch::channel(false);
         let session_id = reg.session_id.clone();
 
@@ -113,8 +116,8 @@ impl AppState {
 
         self.sessions.insert(session_id.clone(), session);
 
-        // Auto-set active session if this is the first one
-        if self.active_session.is_none() {
+        // Auto-activate if no active session, or if current active session is stale/dead
+        if self.active_session.is_none() || !self.is_plugin_connected() {
             self.active_session = Some(session_id.clone());
             tracing::info!("Auto-activated session: {}", session_id);
         }

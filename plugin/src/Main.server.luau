@@ -349,6 +349,9 @@ Tools["ui_analyze"] = function(args) return UIInspector.analyze(args) end
 -- Documentation tools (Faz 5)
 Tools["docs_generate"] = require(script.Parent.Tools.AutoDocs)
 
+-- Workspace analysis (Faz 6)
+Tools["workspace_analyze"] = require(script.Parent.Tools.WorkspaceAnalyzer)
+
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
 
