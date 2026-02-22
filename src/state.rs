@@ -94,6 +94,22 @@ impl AppState {
         // Clean up stale sessions before registering (prevents zombie buildup)
         self.cleanup_expired();
 
+        // Remove old sessions with the same place_id and place_name
+        // (handles Studio restart: new Edit session replaces old dead one)
+        let duplicates: Vec<String> = self.sessions.iter()
+            .filter(|(id, s)| {
+                *id != &reg.session_id
+                    && s.info.place_id == reg.place_id
+                    && s.info.place_name == reg.place_name
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        for dup_id in duplicates {
+            tracing::info!("Removing duplicate session for same place: {}", dup_id);
+            self.unregister_session(&dup_id);
+        }
+
         let (notify_tx, notify_rx) = watch::channel(false);
         let session_id = reg.session_id.clone();
 
