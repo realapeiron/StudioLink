@@ -38,6 +38,19 @@ local function resolvePath(path: string): Instance?
 	return current
 end
 
+-- Try to parse a JSON string into a table
+local function tryJsonDecode(value: any): any
+	if type(value) == "string" then
+		local ok, decoded = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(value)
+		end)
+		if ok and type(decoded) == "table" then
+			return decoded
+		end
+	end
+	return value
+end
+
 -- Deserialize a value from JSON to the appropriate Roblox type
 local function deserializeValue(value: any, valueType: string?): any
 	if valueType == nil or valueType == "string" then
@@ -47,16 +60,34 @@ local function deserializeValue(value: any, valueType: string?): any
 	elseif valueType == "boolean" then
 		return value == true or value == "true"
 	elseif valueType == "Vector3" then
-		if type(value) == "table" then
-			return Vector3.new(value.X or value[1] or 0, value.Y or value[2] or 0, value.Z or value[3] or 0)
+		local v = tryJsonDecode(value)
+		if type(v) == "table" then
+			return Vector3.new(v.X or v[1] or 0, v.Y or v[2] or 0, v.Z or v[3] or 0)
+		elseif type(v) == "string" then
+			local parts = v:gsub("[%[%]%(%)%s]", ""):split(",")
+			if #parts >= 3 then
+				return Vector3.new(tonumber(parts[1]) or 0, tonumber(parts[2]) or 0, tonumber(parts[3]) or 0)
+			end
 		end
 	elseif valueType == "Color3" then
-		if type(value) == "table" then
-			return Color3.new(value.R or value[1] or 0, value.G or value[2] or 0, value.B or value[3] or 0)
+		local v = tryJsonDecode(value)
+		if type(v) == "table" then
+			return Color3.new(v.R or v[1] or 0, v.G or v[2] or 0, v.B or v[3] or 0)
+		elseif type(v) == "string" then
+			local parts = v:gsub("[%[%]%(%)%s]", ""):split(",")
+			if #parts >= 3 then
+				return Color3.new(tonumber(parts[1]) or 0, tonumber(parts[2]) or 0, tonumber(parts[3]) or 0)
+			end
 		end
 	elseif valueType == "UDim2" then
-		if type(value) == "table" then
-			return UDim2.new(value[1] or 0, value[2] or 0, value[3] or 0, value[4] or 0)
+		local v = tryJsonDecode(value)
+		if type(v) == "table" then
+			return UDim2.new(v[1] or 0, v[2] or 0, v[3] or 0, v[4] or 0)
+		elseif type(v) == "string" then
+			local parts = v:gsub("[%[%]%(%)%s]", ""):split(",")
+			if #parts >= 4 then
+				return UDim2.new(tonumber(parts[1]) or 0, tonumber(parts[2]) or 0, tonumber(parts[3]) or 0, tonumber(parts[4]) or 0)
+			end
 		end
 	elseif valueType == "BrickColor" then
 		return BrickColor.new(tostring(value))
@@ -274,6 +305,12 @@ function InstanceTools.setProperty(args: { [string]: any }): (boolean, any, stri
 		return false, nil, "Failed to set property: " .. tostring(err)
 	end
 
+	-- Record waypoint for undo
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Set " .. propName .. " on " .. instance.Name)
+	end)
+
 	return true, {
 		path = path,
 		property = propName,
@@ -314,6 +351,12 @@ function InstanceTools.massSetProperty(args: { [string]: any }): (boolean, any, 
 			table.insert(errors, path .. ": not found")
 		end
 	end
+
+	-- Record waypoint for undo
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Mass set " .. propName .. " on " .. tostring(updated) .. " instances")
+	end)
 
 	return true, {
 		updated = updated,
@@ -364,6 +407,12 @@ function InstanceTools.createInstance(args: { [string]: any }): (boolean, any, s
 
 	instance.Parent = parent
 
+	-- Record waypoint for undo
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Create " .. className .. " in " .. parent.Name)
+	end)
+
 	return true, {
 		fullName = instance:GetFullName(),
 		className = instance.ClassName,
@@ -388,6 +437,12 @@ function InstanceTools.deleteInstance(args: { [string]: any }): (boolean, any, s
 	local descendantCount = #instance:GetDescendants()
 
 	instance:Destroy()
+
+	-- Record waypoint for undo
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Delete " .. name)
+	end)
 
 	return true, {
 		deleted = true,
