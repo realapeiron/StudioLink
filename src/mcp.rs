@@ -153,6 +153,100 @@ pub struct WorkspaceAnalyzeParams {
     pub path: Option<String>,
 }
 
+// --- Instance Management ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GetFileTreeParams {
+    /// Optional path to get tree for (e.g. "Workspace.MyModel"). If empty, returns all services.
+    pub path: Option<String>,
+    /// Maximum depth to traverse (default: 10)
+    pub depth: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GetInstancePropertiesParams {
+    /// Dot-separated path to the instance (e.g. "Workspace.Part")
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SetPropertyParams {
+    /// Dot-separated path to the instance
+    pub path: String,
+    /// Property name to set
+    pub property: String,
+    /// Value to set
+    pub value: Value,
+    /// Optional value type hint: "string", "number", "boolean", "Vector3", "Color3", "UDim2", "BrickColor", "Enum"
+    #[serde(rename = "valueType")]
+    pub value_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct MassSetPropertyParams {
+    /// Array of dot-separated paths to instances
+    pub paths: Vec<String>,
+    /// Property name to set
+    pub property: String,
+    /// Value to set
+    pub value: Value,
+    /// Optional value type hint
+    #[serde(rename = "valueType")]
+    pub value_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct CreateInstanceParams {
+    /// Roblox class name (e.g. "Part", "Script", "Folder")
+    #[serde(rename = "className")]
+    pub class_name: String,
+    /// Dot-separated path to the parent instance (default: Workspace)
+    #[serde(rename = "parentPath")]
+    pub parent_path: Option<String>,
+    /// Optional properties to set on the new instance
+    pub properties: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct DeleteInstanceParams {
+    /// Dot-separated path to the instance to delete
+    pub path: String,
+}
+
+// --- Script Tools ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GetScriptSourceParams {
+    /// Dot-separated path to the script (e.g. "ServerScriptService.MyScript")
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SetScriptSourceParams {
+    /// Dot-separated path to the script
+    pub path: String,
+    /// New source code for the script
+    pub source: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GrepScriptsParams {
+    /// Text pattern to search for in all scripts
+    pub pattern: String,
+    /// Whether the search is case sensitive (default: true)
+    #[serde(rename = "caseSensitive")]
+    pub case_sensitive: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SearchObjectsParams {
+    /// Search query (name or class to search for)
+    pub query: String,
+    /// Search mode: "name", "class", or "both" (default: "name")
+    #[serde(rename = "searchBy")]
+    pub search_by: Option<String>,
+}
+
 // --- Session ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -165,7 +259,7 @@ pub struct SwitchSessionParams {
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
 
-/// StudioLink MCP Server handler — registers and dispatches all 36 tools
+/// StudioLink MCP Server handler — registers and dispatches all 49 tools
 #[derive(Clone)]
 pub struct StudioLinkMcp {
     pub state: Arc<Mutex<AppState>>,
@@ -548,6 +642,150 @@ impl StudioLinkMcp {
     }
 
     // ═══════════════════════════════════════════
+    // INSTANCE MANAGEMENT
+    // ═══════════════════════════════════════════
+
+    #[tool(description = "Get a hierarchical tree of all instances in the place. Optionally specify a path to focus on a subtree and depth to limit traversal.")]
+    async fn get_file_tree(
+        &self,
+        params: Parameters<GetFileTreeParams>,
+    ) -> String {
+        match tools::instance::get_file_tree(&self.state, params.0.path.as_deref(), params.0.depth).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Get all properties of an instance at the given path, including class-specific properties (BasePart, GuiObject, Light, etc.), attributes, and tags.")]
+    async fn get_instance_properties(
+        &self,
+        params: Parameters<GetInstancePropertiesParams>,
+    ) -> String {
+        match tools::instance::get_instance_properties(&self.state, &params.0.path).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Set a single property on an instance. Supports type hints for Vector3, Color3, UDim2, BrickColor, Enum values.")]
+    async fn set_property(
+        &self,
+        params: Parameters<SetPropertyParams>,
+    ) -> String {
+        match tools::instance::set_property(
+            &self.state, &params.0.path, &params.0.property, params.0.value, params.0.value_type.as_deref(),
+        ).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Set the same property on multiple instances at once. Provide an array of paths.")]
+    async fn mass_set_property(
+        &self,
+        params: Parameters<MassSetPropertyParams>,
+    ) -> String {
+        match tools::instance::mass_set_property(
+            &self.state, params.0.paths, &params.0.property, params.0.value, params.0.value_type.as_deref(),
+        ).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Create a new instance with the given class name under a parent path. Optionally set initial properties.")]
+    async fn create_instance(
+        &self,
+        params: Parameters<CreateInstanceParams>,
+    ) -> String {
+        match tools::instance::create_instance(
+            &self.state, &params.0.class_name, params.0.parent_path.as_deref(), params.0.properties,
+        ).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Delete an instance and all its descendants at the given path.")]
+    async fn delete_instance(
+        &self,
+        params: Parameters<DeleteInstanceParams>,
+    ) -> String {
+        match tools::instance::delete_instance(&self.state, &params.0.path).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // SCRIPT TOOLS
+    // ═══════════════════════════════════════════
+
+    #[tool(description = "Get the source code of a script with line numbers. Works with Script, LocalScript, and ModuleScript.")]
+    async fn get_script_source(
+        &self,
+        params: Parameters<GetScriptSourceParams>,
+    ) -> String {
+        match tools::scripts::get_script_source(&self.state, &params.0.path).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Replace the entire source code of a script. Records a waypoint for undo support.")]
+    async fn set_script_source(
+        &self,
+        params: Parameters<SetScriptSourceParams>,
+    ) -> String {
+        match tools::scripts::set_script_source(&self.state, &params.0.path, &params.0.source).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Search all scripts in the place for a text pattern. Returns matching lines with line numbers and file paths.")]
+    async fn grep_scripts(
+        &self,
+        params: Parameters<GrepScriptsParams>,
+    ) -> String {
+        match tools::scripts::grep_scripts(&self.state, &params.0.pattern, params.0.case_sensitive).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Search for instances by name or class across the entire place. Use searchBy: 'name', 'class', or 'both'.")]
+    async fn search_objects(
+        &self,
+        params: Parameters<SearchObjectsParams>,
+    ) -> String {
+        match tools::scripts::search_objects(&self.state, &params.0.query, params.0.search_by.as_deref()).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // UNDO / REDO
+    // ═══════════════════════════════════════════
+
+    #[tool(description = "Undo the last action in Roblox Studio using ChangeHistoryService.")]
+    async fn undo(&self) -> String {
+        match tools::history::undo(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Redo the last undone action in Roblox Studio using ChangeHistoryService.")]
+    async fn redo(&self) -> String {
+        match tools::history::redo(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
     // SESSION MANAGEMENT (Multi-Place Support)
     // ═══════════════════════════════════════════
 
@@ -584,7 +822,7 @@ impl ServerHandler for StudioLinkMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "StudioLink — Advanced Roblox Studio MCP Server with 36 tools for professional game development".into(),
+                "StudioLink — Advanced Roblox Studio MCP Server with 49 tools for professional game development".into(),
             ),
             capabilities: ServerCapabilities::builder()
                 .enable_tools()

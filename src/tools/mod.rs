@@ -13,6 +13,9 @@ pub mod ui_inspector;
 pub mod docs;
 pub mod workspace;
 pub mod session;
+pub mod instance;
+pub mod scripts;
+pub mod history;
 
 use serde_json::Value;
 use std::sync::Arc;

@@ -1,7 +1,7 @@
 --!strict
 --[[
 	StudioLink — Advanced Roblox Studio MCP Server Plugin
-	36 tools for professional game development with AI assistance
+	49 tools for professional game development with AI assistance
 
 	This plugin communicates with the StudioLink Rust server via HTTP long polling.
 	It receives tool commands, executes them, and returns results.
@@ -248,23 +248,35 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		end
 	end)
 
-	-- Server context polling loop
+	-- Server context polling loop (with error handling)
 	while RunService:IsRunning() do
-		local pollOk, request = httpRequest("GET", "/request?session_id=" .. SERVER_SESSION_ID)
-		if pollOk and request and type(request) == "table" and request.id then
-			print("[StudioLink-Server] Executing: " .. tostring(request.tool))
-			local response = executeServerTool(request)
-			httpRequest("POST", "/response", response)
-		else
-			task.wait(0.5)
+		local pollOk, pollErr = pcall(function()
+			local reqOk, request = httpRequest("GET", "/request?session_id=" .. SERVER_SESSION_ID)
+			if reqOk and request and type(request) == "table" and request.id then
+				print("[StudioLink-Server] Executing: " .. tostring(request.tool))
+				local response = executeServerTool(request)
+				httpRequest("POST", "/response", response)
+			else
+				task.wait(0.5)
+			end
+		end)
+		if not pollOk then
+			warn("[StudioLink-Server] Poll error: " .. tostring(pollErr))
+			task.wait(1)
 		end
 	end
 
-	-- Unregister on play end
-	pcall(function()
-		httpRequest("POST", "/unregister", { session_id = SERVER_SESSION_ID })
-		print("[StudioLink-Server] Session unregistered")
-	end)
+	-- Unregister on play end (with retries)
+	for attempt = 1, 3 do
+		local ok, _ = pcall(function()
+			httpRequest("POST", "/unregister", { session_id = SERVER_SESSION_ID })
+		end)
+		if ok then
+			print("[StudioLink-Server] Session unregistered (attempt " .. attempt .. ")")
+			break
+		end
+		task.wait(0.5)
+	end
 	return
 end
 
@@ -351,6 +363,27 @@ Tools["docs_generate"] = require(script.Parent.Tools.AutoDocs)
 
 -- Workspace analysis (Faz 6)
 Tools["workspace_analyze"] = require(script.Parent.Tools.WorkspaceAnalyzer)
+
+-- Instance management tools (Faz 7)
+local InstanceTools = require(script.Parent.Tools.InstanceTools)
+Tools["get_file_tree"] = function(args) return InstanceTools.getFileTree(args) end
+Tools["get_instance_properties"] = function(args) return InstanceTools.getProperties(args) end
+Tools["set_property"] = function(args) return InstanceTools.setProperty(args) end
+Tools["mass_set_property"] = function(args) return InstanceTools.massSetProperty(args) end
+Tools["create_instance"] = function(args) return InstanceTools.createInstance(args) end
+Tools["delete_instance"] = function(args) return InstanceTools.deleteInstance(args) end
+
+-- Script tools (Faz 7)
+local ScriptTools = require(script.Parent.Tools.ScriptTools)
+Tools["get_script_source"] = function(args) return ScriptTools.getScriptSource(args) end
+Tools["set_script_source"] = function(args) return ScriptTools.setScriptSource(args) end
+Tools["grep_scripts"] = function(args) return ScriptTools.grepScripts(args) end
+Tools["search_objects"] = function(args) return ScriptTools.searchObjects(args) end
+
+-- Undo/Redo tools (Faz 7)
+local UndoRedo = require(script.Parent.Tools.UndoRedo)
+Tools["undo"] = function(args) return UndoRedo.undo(args) end
+Tools["redo"] = function(args) return UndoRedo.redo(args) end
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
