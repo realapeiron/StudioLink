@@ -32,8 +32,8 @@ function NetworkMonitor.start(args: { [string]: any }): (boolean, any, string?)
 			if entry then
 				entry.count += 1
 				-- Estimate data size
-				local args = { ... }
-				local sizeEstimate = #HttpService:JSONEncode(args)
+				local remoteArgs = { ... }
+				local sizeEstimate = #HttpService:JSONEncode(remoteArgs)
 				entry.totalSize += sizeEstimate
 				table.insert(entry.timestamps, os.clock() - startTime)
 			end

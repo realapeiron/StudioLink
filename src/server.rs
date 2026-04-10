@@ -229,26 +229,3 @@ async fn handle_health(
     }))
 }
 
-/// Start the HTTP server on the given port
-pub async fn start_server(
-    state: SharedState,
-    global_notify_rx: watch::Receiver<bool>,
-    port: u16,
-) -> crate::error::Result<()> {
-    let router = create_router(state, global_notify_rx);
-    let addr = format!("127.0.0.1:{}", port);
-
-    tracing::info!("StudioLink HTTP server starting on {}", addr);
-
-    let listener = tokio::net::TcpListener::bind(&addr)
-        .await
-        .map_err(|e| crate::error::StudioLinkError::ServerError(
-            format!("Failed to bind to {}: {}", addr, e)
-        ))?;
-
-    axum::serve(listener, router)
-        .await
-        .map_err(|e| crate::error::StudioLinkError::ServerError(e.to_string()))?;
-
-    Ok(())
-}

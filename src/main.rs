@@ -9,7 +9,7 @@ use rmcp::ServiceExt;
 use tracing_subscriber::EnvFilter;
 
 /// StudioLink — Advanced Roblox Studio MCP Server
-/// 36 tools for professional game development with AI assistance
+/// 49 tools for professional game development with AI assistance
 #[derive(Parser, Debug)]
 #[command(name = "studiolink", version, about)]
 struct Args {
@@ -44,7 +44,7 @@ async fn main() -> color_eyre::Result<()> {
         "StudioLink v{} — Advanced Roblox Studio MCP Server",
         env!("CARGO_PKG_VERSION")
     );
-    tracing::info!("36 tools for professional game development");
+    tracing::info!("49 tools for professional game development");
 
     // Create shared state
     let (state, notify_rx) = state::AppState::new();
@@ -67,11 +67,21 @@ async fn main() -> color_eyre::Result<()> {
             });
         }
         Err(_) => {
-            // Port taken — another StudioLink instance is running, switch to proxy mode
-            tracing::info!("Proxy mode: forwarding tool calls to primary server at {}", proxy_url);
+            // Port taken — verify it's actually a StudioLink instance before entering proxy mode
+            let health_url = format!("http://127.0.0.1:{}/health", port);
+            let client = reqwest::Client::new();
+            match client.get(&health_url).timeout(std::time::Duration::from_secs(2)).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    tracing::info!("Proxy mode: verified StudioLink at port {}, forwarding tool calls", port);
+                }
+                _ => {
+                    tracing::warn!("Port {} is taken by another application (not StudioLink), proxy mode may not work", port);
+                }
+            }
             let mut s = state.lock().await;
             s.proxy_mode = true;
             s.proxy_url = proxy_url;
+            s.proxy_client = Some(client);
             drop(s);
         }
     }

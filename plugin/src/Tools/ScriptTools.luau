@@ -3,6 +3,7 @@
 
 local Serializer = require(script.Parent.Parent.Utils.Serializer)
 local TreeWalker = require(script.Parent.Parent.Utils.TreeWalker)
+local PathResolver = require(script.Parent.Parent.Utils.PathResolver)
 
 local ScriptTools = {}
 
@@ -10,35 +11,8 @@ local ScriptTools = {}
 -- TOOL IMPLEMENTATIONS
 -- ═══════════════════════════════════════════
 
--- Resolve a dot-separated path to an Instance
 local function resolvePath(path: string): Instance?
-	local parts = path:split(".")
-	local current: Instance = game
-
-	local startIndex = 1
-	if parts[1] == "game" then
-		startIndex = 2
-	end
-
-	for i = startIndex, #parts do
-		local child = current:FindFirstChild(parts[i])
-		if not child then
-			if current == game then
-				local ok, svc = pcall(function()
-					return game:GetService(parts[i])
-				end)
-				if ok and svc then
-					child = svc
-				end
-			end
-		end
-		if not child then
-			return nil
-		end
-		current = child
-	end
-
-	return current
+	return PathResolver.resolve(path)
 end
 
 -- Get script source with line numbers
@@ -103,6 +77,12 @@ function ScriptTools.setScriptSource(args: { [string]: any }): (boolean, any, st
 	pcall(function() oldSource = (instance :: any).Source end)
 	local oldLineCount = #oldSource:split("\n")
 
+	-- Record waypoint BEFORE change (so undo reverts to pre-change state)
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Edit " .. instance.Name)
+	end)
+
 	local ok, err = pcall(function()
 		(instance :: any).Source = source
 	end)
@@ -112,12 +92,6 @@ function ScriptTools.setScriptSource(args: { [string]: any }): (boolean, any, st
 	end
 
 	local newLineCount = #source:split("\n")
-
-	-- Record waypoint for undo
-	pcall(function()
-		local CHS = game:GetService("ChangeHistoryService")
-		;(CHS :: any):SetWaypoint("StudioLink: Edit " .. instance.Name)
-	end)
 
 	return true, {
 		path = instance:GetFullName(),

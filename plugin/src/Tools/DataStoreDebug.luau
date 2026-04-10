@@ -95,6 +95,7 @@ end
 function DataStoreDebug.scan(args: { [string]: any }): (boolean, any, string?)
 	local storeName = args.storeName
 	local pageSize = args.pageSize or 50
+	local maxPages = args.maxPages or 1
 
 	if not storeName then
 		return false, nil, "storeName is required"
@@ -104,18 +105,25 @@ function DataStoreDebug.scan(args: { [string]: any }): (boolean, any, string?)
 		local store = DataStoreService:GetDataStore(storeName)
 		local pages = store:ListKeysAsync("", pageSize)
 		local keys: { any } = {}
+		local pageCount = 0
 
-		local page = pages:GetCurrentPage()
-		for _, keyInfo in ipairs(page) do
-			table.insert(keys, {
-				key = keyInfo.KeyName,
-			})
-		end
+		repeat
+			pageCount += 1
+			local page = pages:GetCurrentPage()
+			for _, keyInfo in ipairs(page) do
+				table.insert(keys, {
+					key = keyInfo.KeyName,
+				})
+			end
+			if pages.IsFinished or pageCount >= maxPages then break end
+			pages:AdvanceToNextPageAsync()
+		until false
 
 		return {
 			keys = keys,
 			count = #keys,
 			hasMore = not pages.IsFinished,
+			pagesScanned = pageCount,
 		}
 	end)
 

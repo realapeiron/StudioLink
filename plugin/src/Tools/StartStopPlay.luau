@@ -1,7 +1,7 @@
 --!strict
-local StudioTestService = game:FindFirstChildOfClass("StudioTestService") :: any
+local PluginState = require(script.Parent.Parent.Utils.PluginState)
 
--- Global mode tracker (shared with GetStudioMode via _G)
+-- Keep _G sync for backwards compatibility with server/client contexts
 _G.StudioLinkMode = _G.StudioLinkMode or "stop"
 
 return function(args: { [string]: any }): (boolean, any, string?)
@@ -10,14 +10,17 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		return false, nil, "mode is required (start_play, stop, or run_server)"
 	end
 
+	-- Lazy lookup: StudioTestService may not be available at module load time
+	local StudioTestService = game:FindFirstChildOfClass("StudioTestService") :: any
 	if not StudioTestService then
 		return false, nil, "StudioTestService not available"
 	end
 
 	if mode == "start_play" then
+		PluginState.mode = "start_play"
 		_G.StudioLinkMode = "start_play"
 		-- Clear any stale stop request
-		local pluginRef = _G.StudioLinkPlugin
+		local pluginRef = PluginState.plugin or _G.StudioLinkPlugin
 		if pluginRef then
 			pcall(function() pluginRef:SetSetting("StudioLink_StopRequested", false) end)
 		end
@@ -25,14 +28,16 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		task.defer(function()
 			StudioTestService:ExecutePlayModeAsync({})
 			-- ExecutePlayModeAsync yields until play ends
+			PluginState.mode = "stop"
 			_G.StudioLinkMode = "stop"
 		end)
 		return true, "Play mode started", nil
 
 	elseif mode == "stop" then
+		PluginState.mode = "stop"
 		_G.StudioLinkMode = "stop"
 		-- Signal the Server context stop-listener via plugin settings
-		local pluginRef = _G.StudioLinkPlugin
+		local pluginRef = PluginState.plugin or _G.StudioLinkPlugin
 		if pluginRef then
 			local ok, err = pcall(function()
 				pluginRef:SetSetting("StudioLink_StopRequested", true)
@@ -47,13 +52,15 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		end
 
 	elseif mode == "run_server" then
+		PluginState.mode = "run_server"
 		_G.StudioLinkMode = "run_server"
-		local pluginRef = _G.StudioLinkPlugin
+		local pluginRef = PluginState.plugin or _G.StudioLinkPlugin
 		if pluginRef then
 			pcall(function() pluginRef:SetSetting("StudioLink_StopRequested", false) end)
 		end
 		task.defer(function()
 			StudioTestService:ExecuteRunModeAsync({})
+			PluginState.mode = "stop"
 			_G.StudioLinkMode = "stop"
 		end)
 		return true, "Server started (Run mode)", nil

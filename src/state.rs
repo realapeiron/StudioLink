@@ -69,6 +69,8 @@ pub struct AppState {
     pub proxy_mode: bool,
     /// Primary server URL (used in proxy mode)
     pub proxy_url: String,
+    /// Reusable HTTP client for proxy requests (avoids recreating per request)
+    pub proxy_client: Option<reqwest::Client>,
 }
 
 impl AppState {
@@ -81,6 +83,7 @@ impl AppState {
             global_notify_tx,
             proxy_mode: false,
             proxy_url: String::new(),
+            proxy_client: None,
         };
         (Arc::new(Mutex::new(state)), global_notify_rx)
     }
@@ -254,11 +257,12 @@ impl AppState {
         }
     }
 
-    /// Check if a session is connected (heartbeat within last 30 seconds)
+    /// Check if a session is connected (heartbeat within last 45 seconds)
+    /// Increased from 30s to 45s to handle play mode transitions and long tool execution
     pub fn is_session_connected(&self, session_id: &str) -> bool {
         self.sessions
             .get(session_id)
-            .map(|s| s.last_heartbeat.elapsed().as_secs() < 30)
+            .map(|s| s.last_heartbeat.elapsed().as_secs() < 45)
             .unwrap_or(false)
     }
 
@@ -286,11 +290,13 @@ impl AppState {
             }
         });
 
-        // Clean up disconnected sessions (no heartbeat for 60 seconds)
+        // Clean up disconnected sessions (no heartbeat for 120 seconds)
+        // Increased from 60s to 120s to survive play mode transitions where
+        // HTTP polling may be interrupted during Studio state changes
         let stale: Vec<String> = self
             .sessions
             .iter()
-            .filter(|(_, s)| s.last_heartbeat.elapsed().as_secs() > 60)
+            .filter(|(_, s)| s.last_heartbeat.elapsed().as_secs() > 120)
             .map(|(id, _)| id.clone())
             .collect();
 

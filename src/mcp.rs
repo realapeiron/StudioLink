@@ -79,8 +79,8 @@ pub struct DataStoreScanParams {
     pub store_name: String,
     /// Number of keys per page
     pub page_size: Option<u32>,
-    /// Pagination cursor from previous scan
-    pub cursor: Option<String>,
+    /// Maximum number of pages to scan (default: 1)
+    pub max_pages: Option<u32>,
 }
 
 // --- Profiler ---
@@ -405,7 +405,7 @@ impl StudioLinkMcp {
         params: Parameters<DataStoreScanParams>,
     ) -> String {
         match tools::datastore::datastore_scan(
-            &self.state, &params.0.store_name, params.0.page_size, params.0.cursor.as_deref(),
+            &self.state, &params.0.store_name, params.0.page_size, params.0.max_pages,
         ).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),

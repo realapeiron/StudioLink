@@ -22,22 +22,31 @@ return function(args: { [string]: any }): (boolean, any, string?)
 			modelName = info.Name or modelName
 		end
 	else
-		-- Search via InsertService:GetFreeModels (returns pages format)
-		local searchOk, pages = pcall(function()
-			return InsertService:GetFreeModels(query, 0)
+		-- Search via Toolbox API (GetFreeModels is deprecated and broken)
+		local HttpService = game:GetService("HttpService")
+		local searchOk, searchResult = pcall(function()
+			local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"
+				.. HttpService:UrlEncode(query)
+				.. "?category=Models&limit=1&sortType=Relevance"
+			local response = HttpService:RequestAsync({
+				Url = url,
+				Method = "GET",
+			})
+			if response.StatusCode == 200 then
+				return HttpService:JSONDecode(response.Body)
+			end
+			return nil
 		end)
 
-		if searchOk and pages and #pages > 0 then
-			local page = pages[1]
-			if page.Results and #page.Results > 0 then
-				local firstResult = page.Results[1]
-				modelId = firstResult.AssetId
-				modelName = firstResult.Name or modelName
-			end
+		if searchOk and searchResult and searchResult.data and #searchResult.data > 0 then
+			local firstResult = searchResult.data[1]
+			modelId = firstResult.id or firstResult.assetId
+			modelName = firstResult.name or firstResult.Name or modelName
 		end
 
 		if not modelId then
-			return false, nil, "No models found for query: " .. query .. ". Try different keywords or provide a direct asset ID."
+			return false, nil, "No models found for query: " .. query
+				.. ". Try different keywords or provide a direct numeric asset ID."
 		end
 	end
 

@@ -179,19 +179,19 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		local handler = ServerTools[toolName]
 		if not handler then
 			return {
-				id = id, success = false, result = "null",
+				id = id, success = false, result = "(no result)",
 				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play",
 			}
 		end
 		local ok, success, result, err = pcall(handler, args)
 		if not ok then
 			return {
-				id = id, success = false, result = "null",
+				id = id, success = false, result = "(no result)",
 				error = "Server tool error: " .. tostring(success),
 			}
 		end
 		local serializedResult = Serializer.serialize(result)
-		if serializedResult == nil then serializedResult = "null" end
+		if serializedResult == nil then serializedResult = "(no result)" end
 		return {
 			id = id, success = success, result = serializedResult, error = err,
 		}
@@ -248,14 +248,24 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		end
 	end)
 
-	-- Server context polling loop (with error handling)
+	-- Server context polling loop (non-blocking tool execution)
 	while RunService:IsRunning() do
 		local pollOk, pollErr = pcall(function()
 			local reqOk, request = httpRequest("GET", "/request?session_id=" .. SERVER_SESSION_ID)
 			if reqOk and request and type(request) == "table" and request.id then
 				print("[StudioLink-Server] Executing: " .. tostring(request.tool))
-				local response = executeServerTool(request)
-				httpRequest("POST", "/response", response)
+				-- Non-blocking: execute in separate thread so polling continues
+				task.spawn(function()
+					local response = executeServerTool(request)
+					httpRequest("POST", "/response", response)
+				end)
+			elseif not reqOk then
+				local errStr = tostring(request)
+				if errStr:find("404") or errStr:find("HTTP 404") then
+					warn("[StudioLink-Server] Session lost, stopping server context polling")
+					return -- Exit the pcall, outer loop will check RunService:IsRunning()
+				end
+				task.wait(0.5)
 			else
 				task.wait(0.5)
 			end
@@ -292,7 +302,10 @@ local VERSION = "0.1.0"
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)
 
--- Store plugin reference globally for tools that need it
+-- Store plugin reference for tools that need it
+local PluginState = require(script.Parent.Utils.PluginState)
+PluginState.plugin = plugin
+-- Keep _G references for backwards compatibility with play mode contexts
 _G.StudioLinkPlugin = plugin
 
 -- Tool registry
@@ -387,6 +400,21 @@ Tools["redo"] = function(args) return UndoRedo.redo(args) end
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
+
+-- Connect LogService to capture real console output for get_console_output tool
+local LogService = game:GetService("LogService")
+local ConsoleOutput = require(script.Parent.Utils.ConsoleOutput)
+LogService.MessageOut:Connect(function(message, messageType)
+	local level = "OUTPUT"
+	if messageType == Enum.MessageType.MessageWarning then
+		level = "WARNING"
+	elseif messageType == Enum.MessageType.MessageError then
+		level = "ERROR"
+	elseif messageType == Enum.MessageType.MessageInfo then
+		level = "INFO"
+	end
+	ConsoleOutput.capture(message, level)
+end)
 
 -- Count tools
 local toolCount = 0
@@ -509,7 +537,7 @@ local function executeTool(request: any): any
 		return {
 			id = id,
 			success = false,
-			result = "null",
+			result = "(no result)",
 			error = "Unknown tool: " .. tostring(toolName),
 		}
 	end
@@ -526,15 +554,16 @@ local function executeTool(request: any): any
 		return {
 			id = id,
 			success = false,
-			result = "null",
+			result = "(no result)",
 			error = "Tool execution error: " .. tostring(success), -- pcall error is in 'success'
 		}
 	end
 
-	-- Serialize the result (ensure never nil — nil causes JSON field to be omitted, breaking Rust deserialization)
+	-- Serialize the result (ensure never nil — nil causes JSON field to be omitted)
+	-- Use "(no result)" instead of "null" to avoid ambiguity with JSON null
 	local serializedResult = Serializer.serialize(result)
 	if serializedResult == nil then
-		serializedResult = "null"
+		serializedResult = "(no result)"
 	end
 
 	return {
@@ -562,23 +591,36 @@ while not registered do
 end
 
 -- Step 2: Main polling loop with session_id
+-- Tool execution is non-blocking (task.spawn) so heartbeat polling continues
+-- during long-running tools. Auto re-registers if session is lost.
 while true do
 	-- Poll for next request, scoped to this session
 	local pollOk, request = httpRequest("GET", "/request?session_id=" .. SESSION_ID)
 
 	if pollOk and request and type(request) == "table" and request.id then
-		-- Got a request, execute the tool
+		-- Got a request, execute in separate thread so polling continues
 		print("[StudioLink] Executing tool: " .. tostring(request.tool))
-
-		local response = executeTool(request)
-
-		-- Send response back
-		local sendOk, sendResult = httpRequest("POST", "/response", response)
-		if not sendOk then
-			warn("[StudioLink] Failed to send response: " .. tostring(sendResult))
+		task.spawn(function()
+			local response = executeTool(request)
+			local sendOk, sendResult = httpRequest("POST", "/response", response)
+			if not sendOk then
+				warn("[StudioLink] Failed to send response: " .. tostring(sendResult))
+			end
+		end)
+	elseif not pollOk then
+		-- Check if session was lost (server returned 404)
+		local errStr = tostring(request)
+		if errStr:find("404") or errStr:find("HTTP 404") then
+			warn("[StudioLink] Session lost, re-registering...")
+			local reRegistered = registerSession()
+			if reRegistered then
+				print("[StudioLink] Session re-registered successfully")
+			end
+			task.wait(1)
+		else
+			task.wait(POLL_INTERVAL)
 		end
 	else
-		-- No request or error, wait briefly before next poll
 		task.wait(POLL_INTERVAL)
 	end
 end

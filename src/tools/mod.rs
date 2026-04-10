@@ -46,7 +46,7 @@ pub async fn send_to_plugin(
     };
 
     if proxy_mode {
-        return send_via_proxy(&proxy_url, tool, args, timeout).await;
+        return send_via_proxy(state, &proxy_url, tool, args, timeout).await;
     }
 
     // Direct mode: queue request locally
@@ -59,7 +59,7 @@ pub async fn send_to_plugin(
 
             // Try to find any live session and auto-switch to it
             let live_session = s.sessions.iter()
-                .find(|(_, sess)| sess.last_heartbeat.elapsed().as_secs() < 30)
+                .find(|(_, sess)| sess.last_heartbeat.elapsed().as_secs() < 45)
                 .map(|(id, _)| id.clone());
 
             if let Some(live_id) = live_session {
@@ -96,6 +96,7 @@ pub async fn send_to_plugin(
 
 /// Forward a tool request to the primary server via HTTP (proxy mode)
 async fn send_via_proxy(
+    state: &Arc<Mutex<AppState>>,
     proxy_url: &str,
     tool: &str,
     args: Value,
@@ -107,7 +108,14 @@ async fn send_via_proxy(
         args,
     };
 
-    let client = reqwest::Client::new();
+    // Reuse the proxy client from state (avoids recreating per request for connection pooling)
+    let client = {
+        let mut s = state.lock().await;
+        if s.proxy_client.is_none() {
+            s.proxy_client = Some(reqwest::Client::new());
+        }
+        s.proxy_client.clone().unwrap()
+    };
     let url = format!("{}/proxy/tool_call", proxy_url);
 
     let response = client

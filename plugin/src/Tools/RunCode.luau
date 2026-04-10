@@ -11,7 +11,9 @@ return function(args: { [string]: any }): (boolean, any, string?)
 
 	ConsoleOutput.clear()
 
-	-- Override print/warn/error to capture output
+	-- Override print/warn to capture output
+	-- Note: error() is NOT overridden — pcall catches errors naturally.
+	-- Overriding error() would silently swallow guard clauses and validation logic.
 	local output: { string } = {}
 	local env = setmetatable({
 		print = function(...)
@@ -29,9 +31,6 @@ return function(args: { [string]: any }): (boolean, any, string?)
 			end
 			local line = table.concat(parts, "\t")
 			table.insert(output, "[WARNING] " .. line)
-		end,
-		error = function(msg, level)
-			table.insert(output, "[ERROR] " .. tostring(msg))
 		end,
 	}, { __index = getfenv(0) })
 

@@ -2,40 +2,12 @@
 -- InstanceTools: Instance management utilities for StudioLink
 
 local Serializer = require(script.Parent.Parent.Utils.Serializer)
+local PathResolver = require(script.Parent.Parent.Utils.PathResolver)
 
 local InstanceTools = {}
 
--- Resolve a dot-separated path like "Workspace.Model.Part" to an Instance
 local function resolvePath(path: string): Instance?
-	local parts = path:split(".")
-	local current: Instance = game
-
-	-- Handle "game" prefix
-	local startIndex = 1
-	if parts[1] == "game" then
-		startIndex = 2
-	end
-
-	for i = startIndex, #parts do
-		local child = current:FindFirstChild(parts[i])
-		if not child then
-			-- Try GetService for top-level services
-			if current == game then
-				local ok, svc = pcall(function()
-					return game:GetService(parts[i])
-				end)
-				if ok and svc then
-					child = svc
-				end
-			end
-		end
-		if not child then
-			return nil
-		end
-		current = child
-	end
-
-	return current
+	return PathResolver.resolve(path)
 end
 
 -- Try to parse a JSON string into a table
@@ -296,6 +268,12 @@ function InstanceTools.setProperty(args: { [string]: any }): (boolean, any, stri
 	local oldValue = nil
 	pcall(function() oldValue = (instance :: any)[propName] end)
 
+	-- Record waypoint BEFORE change (so undo reverts to pre-change state)
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Set " .. propName .. " on " .. instance.Name)
+	end)
+
 	local newVal = deserializeValue(value, valueType)
 	local ok, err = pcall(function()
 		(instance :: any)[propName] = newVal
@@ -304,12 +282,6 @@ function InstanceTools.setProperty(args: { [string]: any }): (boolean, any, stri
 	if not ok then
 		return false, nil, "Failed to set property: " .. tostring(err)
 	end
-
-	-- Record waypoint for undo
-	pcall(function()
-		local CHS = game:GetService("ChangeHistoryService")
-		;(CHS :: any):SetWaypoint("StudioLink: Set " .. propName .. " on " .. instance.Name)
-	end)
 
 	return true, {
 		path = path,
@@ -334,6 +306,12 @@ function InstanceTools.massSetProperty(args: { [string]: any }): (boolean, any, 
 	local failed = 0
 	local errors: { string } = {}
 
+	-- Record waypoint BEFORE changes (so undo reverts to pre-change state)
+	pcall(function()
+		local CHS = game:GetService("ChangeHistoryService")
+		;(CHS :: any):SetWaypoint("StudioLink: Mass set " .. propName)
+	end)
+
 	for _, path in ipairs(paths) do
 		local instance = resolvePath(path)
 		if instance then
@@ -351,12 +329,6 @@ function InstanceTools.massSetProperty(args: { [string]: any }): (boolean, any, 
 			table.insert(errors, path .. ": not found")
 		end
 	end
-
-	-- Record waypoint for undo
-	pcall(function()
-		local CHS = game:GetService("ChangeHistoryService")
-		;(CHS :: any):SetWaypoint("StudioLink: Mass set " .. propName .. " on " .. tostring(updated) .. " instances")
-	end)
 
 	return true, {
 		updated = updated,
@@ -400,18 +372,13 @@ function InstanceTools.createInstance(args: { [string]: any }): (boolean, any, s
 		end
 	end
 
-	-- Set name if provided in properties
-	if properties and properties.Name then
-		instance.Name = tostring(properties.Name)
-	end
-
-	instance.Parent = parent
-
-	-- Record waypoint for undo
+	-- Record waypoint BEFORE parenting (so undo reverts to pre-creation state)
 	pcall(function()
 		local CHS = game:GetService("ChangeHistoryService")
 		;(CHS :: any):SetWaypoint("StudioLink: Create " .. className .. " in " .. parent.Name)
 	end)
+
+	instance.Parent = parent
 
 	return true, {
 		fullName = instance:GetFullName(),
@@ -436,13 +403,13 @@ function InstanceTools.deleteInstance(args: { [string]: any }): (boolean, any, s
 	local className = instance.ClassName
 	local descendantCount = #instance:GetDescendants()
 
-	instance:Destroy()
-
-	-- Record waypoint for undo
+	-- Record waypoint BEFORE destruction (so undo can restore the instance)
 	pcall(function()
 		local CHS = game:GetService("ChangeHistoryService")
 		;(CHS :: any):SetWaypoint("StudioLink: Delete " .. name)
 	end)
+
+	instance:Destroy()
 
 	return true, {
 		deleted = true,

@@ -59,7 +59,7 @@ pub async fn datastore_scan(
     state: &Arc<Mutex<AppState>>,
     store_name: &str,
     page_size: Option<u32>,
-    cursor: Option<&str>,
+    max_pages: Option<u32>,
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
@@ -67,7 +67,7 @@ pub async fn datastore_scan(
         json!({
             "storeName": store_name,
             "pageSize": page_size.unwrap_or(50),
-            "cursor": cursor.unwrap_or(""),
+            "maxPages": max_pages.unwrap_or(1),
         }),
         EXTENDED_TIMEOUT,
     ).await

@@ -1,12 +1,12 @@
 # StudioLink
 
-**Advanced Roblox Studio MCP Server — 36 tools for professional game development with AI**
+**Advanced Roblox Studio MCP Server — 49 tools for professional game development with AI**
 
 StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 36 specialized tools covering code execution, play testing, security auditing, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
-Roblox's official MCP server provides 6 basic tools. StudioLink gives you **36 tools** with features like:
+Roblox's official MCP server provides 6 basic tools. StudioLink gives you **49 tools** with features like:
 
 - Execute code in **Server context during play mode** (not just Edit mode)
 - Multi-instance support — manage multiple Studio windows simultaneously
@@ -174,17 +174,7 @@ Copy `StudioLink.rbxm` to your Roblox Studio plugins folder:
 }
 ```
 
-**Proxy mode** (connect to an already-running StudioLink server):
-```json
-{
-  "mcpServers": {
-    "studiolink": {
-      "command": "/path/to/studiolink",
-      "args": ["--proxy", "http://127.0.0.1:34872"]
-    }
-  }
-}
-```
+**Proxy mode** is automatic — if another StudioLink instance is already running on the default port, new instances automatically forward tool calls to it. No extra configuration needed; just use the same config as above.
 
 ## Roblox Studio Setup
 
