@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 38: get_file_tree — Hierarchical instance tree
 pub async fn get_file_tree(
@@ -17,7 +17,8 @@ pub async fn get_file_tree(
         "get_file_tree",
         json!({ "path": path.unwrap_or(""), "depth": depth.unwrap_or(10) }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 39: get_instance_properties — All properties of an instance
@@ -30,7 +31,8 @@ pub async fn get_instance_properties(
         "get_instance_properties",
         json!({ "path": path }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 40: set_property — Set a single property on an instance
@@ -51,7 +53,8 @@ pub async fn set_property(
             "valueType": value_type,
         }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 41: mass_set_property — Set property across multiple instances
@@ -72,7 +75,8 @@ pub async fn mass_set_property(
             "valueType": value_type,
         }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 42: create_instance — Create a new instance
@@ -91,7 +95,8 @@ pub async fn create_instance(
             "properties": properties,
         }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 43: delete_instance — Delete an instance
@@ -104,5 +109,6 @@ pub async fn delete_instance(
         "delete_instance",
         json!({ "path": path }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }

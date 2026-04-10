@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 29: network_monitor_start — Start monitoring RemoteEvent/Function traffic
 pub async fn network_monitor_start(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {

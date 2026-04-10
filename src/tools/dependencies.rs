@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 23: dependency_map — Map all require() chains across the project
 /// Detects: circular dependencies, dead code, usage statistics

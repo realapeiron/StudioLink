@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 18: test_run — Run a TestEZ test suite
 pub async fn test_run(
@@ -16,7 +16,8 @@ pub async fn test_run(
         "test_run",
         json!({ "path": path.unwrap_or("") }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 19: test_create — Generate a test template for a given script/module
@@ -29,7 +30,8 @@ pub async fn test_create(
         "test_create",
         json!({ "targetPath": target_path }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 20: test_report — Get detailed test results report

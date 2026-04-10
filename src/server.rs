@@ -58,7 +58,8 @@ async fn handle_unregister(
     State(state): State<SharedState>,
     Json(payload): Json<serde_json::Value>,
 ) -> StatusCode {
-    let session_id = payload.get("session_id")
+    let session_id = payload
+        .get("session_id")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -68,19 +69,21 @@ async fn handle_unregister(
 }
 
 /// GET /sessions — List all connected sessions
-async fn handle_list_sessions(
-    State(state): State<SharedState>,
-) -> Json<serde_json::Value> {
+async fn handle_list_sessions(State(state): State<SharedState>) -> Json<serde_json::Value> {
     let s = state.lock().await;
-    let sessions: Vec<serde_json::Value> = s.list_sessions().iter().map(|info| {
-        serde_json::json!({
-            "session_id": info.session_id,
-            "place_id": info.place_id,
-            "place_name": info.place_name,
-            "game_id": info.game_id,
-            "connected_at": info.connected_at,
+    let sessions: Vec<serde_json::Value> = s
+        .list_sessions()
+        .iter()
+        .map(|info| {
+            serde_json::json!({
+                "session_id": info.session_id,
+                "place_id": info.place_id,
+                "place_name": info.place_name,
+                "game_id": info.game_id,
+                "connected_at": info.connected_at,
+            })
         })
-    }).collect();
+        .collect();
 
     let active = s.get_active_session().map(|s| s.to_string());
 
@@ -121,11 +124,8 @@ async fn handle_poll_request(
         return Err(StatusCode::NOT_FOUND);
     };
 
-    let timeout = tokio::time::timeout(
-        std::time::Duration::from_secs(30),
-        notify_rx.changed(),
-    )
-    .await;
+    let timeout =
+        tokio::time::timeout(std::time::Duration::from_secs(30), notify_rx.changed()).await;
 
     match timeout {
         Ok(Ok(())) => {
@@ -176,10 +176,7 @@ async fn handle_proxy_tool_call(
     };
 
     // Wait for the plugin to respond (timeout: 60 seconds)
-    let timeout = tokio::time::timeout(
-        std::time::Duration::from_secs(60),
-        rx.recv(),
-    ).await;
+    let timeout = tokio::time::timeout(std::time::Duration::from_secs(60), rx.recv()).await;
 
     match timeout {
         Ok(Some(response)) => Ok(Json(response)),
@@ -192,7 +189,8 @@ async fn handle_switch_session(
     State(state): State<SharedState>,
     Json(payload): Json<serde_json::Value>,
 ) -> Json<serde_json::Value> {
-    let session_id = payload.get("session_id")
+    let session_id = payload
+        .get("session_id")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -213,9 +211,7 @@ async fn handle_switch_session(
 }
 
 /// GET /health — Check server and all session statuses
-async fn handle_health(
-    State(state): State<SharedState>,
-) -> Json<serde_json::Value> {
+async fn handle_health(State(state): State<SharedState>) -> Json<serde_json::Value> {
     let s = state.lock().await;
     let session_count = s.sessions.len();
     let active = s.get_active_session().map(|s| s.to_string());
@@ -228,4 +224,3 @@ async fn handle_health(
         "plugin_connected": s.is_plugin_connected(),
     }))
 }
-

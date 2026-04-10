@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 12: profile_start — Start the ScriptProfiler
 pub async fn profile_start(
@@ -16,7 +16,8 @@ pub async fn profile_start(
         "profile_start",
         json!({ "frequency": frequency.unwrap_or(1000) }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 13: profile_stop — Stop profiling and return raw results

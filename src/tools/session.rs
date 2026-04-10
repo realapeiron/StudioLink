@@ -2,8 +2,8 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use crate::error::{Result, StudioLinkError};
 use crate::state::AppState;
-use crate::error::{StudioLinkError, Result};
 
 /// Tool 34: list_sessions — List all connected Studio sessions
 pub async fn list_sessions(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
@@ -20,15 +20,18 @@ pub async fn list_sessions(state: &Arc<Mutex<AppState>>) -> Result<serde_json::V
     let sessions = s.list_sessions();
     let active = s.get_active_session().map(|s| s.to_string());
 
-    let session_list: Vec<serde_json::Value> = sessions.iter().map(|info| {
-        json!({
-            "session_id": info.session_id,
-            "place_id": info.place_id,
-            "place_name": info.place_name,
-            "game_id": info.game_id,
-            "is_active": active.as_deref() == Some(&info.session_id),
+    let session_list: Vec<serde_json::Value> = sessions
+        .iter()
+        .map(|info| {
+            json!({
+                "session_id": info.session_id,
+                "place_id": info.place_id,
+                "place_name": info.place_name,
+                "game_id": info.game_id,
+                "is_active": active.as_deref() == Some(&info.session_id),
+            })
         })
-    }).collect();
+        .collect();
 
     Ok(json!({
         "sessions": session_list,
@@ -58,12 +61,16 @@ pub async fn switch_session(
             .timeout(std::time::Duration::from_secs(5))
             .send()
             .await
-            .map_err(|e| crate::error::StudioLinkError::PluginError(format!("Proxy switch_session failed: {}", e)))?;
+            .map_err(|e| {
+                crate::error::StudioLinkError::PluginError(format!(
+                    "Proxy switch_session failed: {}",
+                    e
+                ))
+            })?;
 
-        return response
-            .json()
-            .await
-            .map_err(|e| crate::error::StudioLinkError::PluginError(format!("Proxy response parse error: {}", e)));
+        return response.json().await.map_err(|e| {
+            crate::error::StudioLinkError::PluginError(format!("Proxy response parse error: {}", e))
+        });
     }
 
     let mut s = state.lock().await;

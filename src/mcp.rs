@@ -290,22 +290,20 @@ impl StudioLinkMcp {
     // FAZ 1: CORE TOOLS
     // ═══════════════════════════════════════════
 
-    #[tool(description = "Execute Luau code in Roblox Studio and return the printed output. Can be used to both make changes and retrieve information.")]
-    async fn run_code(
-        &self,
-        params: Parameters<RunCodeParams>,
-    ) -> String {
+    #[tool(
+        description = "Execute Luau code in Roblox Studio and return the printed output. Can be used to both make changes and retrieve information."
+    )]
+    async fn run_code(&self, params: Parameters<RunCodeParams>) -> String {
         match tools::core::run_code(&self.state, &params.0.command).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Search and insert a model from the Roblox Creator Store into the workspace.")]
-    async fn insert_model(
-        &self,
-        params: Parameters<InsertModelParams>,
-    ) -> String {
+    #[tool(
+        description = "Search and insert a model from the Roblox Creator Store into the workspace."
+    )]
+    async fn insert_model(&self, params: Parameters<InsertModelParams>) -> String {
         match tools::core::insert_model(&self.state, &params.0.query).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -320,31 +318,39 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Start or stop play mode or run the server. Mode must be 'start_play', 'stop', or 'run_server'.")]
-    async fn start_stop_play(
-        &self,
-        params: Parameters<StartStopPlayParams>,
-    ) -> String {
+    #[tool(
+        description = "Start or stop play mode or run the server. Mode must be 'start_play', 'stop', or 'run_server'."
+    )]
+    async fn start_stop_play(&self, params: Parameters<StartStopPlayParams>) -> String {
         match tools::core::start_stop_play(&self.state, &params.0.mode).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Run a Luau script in play mode with automatic stop after completion or timeout. Returns structured output with logs, errors, and duration.")]
+    #[tool(
+        description = "Run a Luau script in play mode with automatic stop after completion or timeout. Returns structured output with logs, errors, and duration."
+    )]
     async fn run_script_in_play_mode(
         &self,
         params: Parameters<RunScriptInPlayModeParams>,
     ) -> String {
         match tools::core::run_script_in_play_mode(
-            &self.state, &params.0.code, &params.0.mode, params.0.timeout,
-        ).await {
+            &self.state,
+            &params.0.code,
+            &params.0.mode,
+            params.0.timeout,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Get the current Roblox Studio mode: 'start_play', 'run_server', or 'stop'.")]
+    #[tool(
+        description = "Get the current Roblox Studio mode: 'start_play', 'run_server', or 'stop'."
+    )]
     async fn get_studio_mode(&self) -> String {
         match tools::core::get_studio_mode(&self.state).await {
             Ok(result) => ok_text(result),
@@ -356,7 +362,9 @@ impl StudioLinkMcp {
     // FAZ 2: DATASTORE & PROFILING
     // ═══════════════════════════════════════════
 
-    #[tool(description = "List all DataStore names in the current experience. Requires 'Allow Studio Access to API Services' enabled in game settings.")]
+    #[tool(
+        description = "List all DataStore names in the current experience. Requires 'Allow Studio Access to API Services' enabled in game settings."
+    )]
     async fn datastore_list(&self) -> String {
         match tools::datastore::datastore_list(&self.state).await {
             Ok(result) => ok_text(result),
@@ -365,58 +373,63 @@ impl StudioLinkMcp {
     }
 
     #[tool(description = "Read a specific key's value from a DataStore.")]
-    async fn datastore_get(
-        &self,
-        params: Parameters<DataStoreGetParams>,
-    ) -> String {
-        match tools::datastore::datastore_get(&self.state, &params.0.store_name, &params.0.key).await {
+    async fn datastore_get(&self, params: Parameters<DataStoreGetParams>) -> String {
+        match tools::datastore::datastore_get(&self.state, &params.0.store_name, &params.0.key)
+            .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Write a value to a DataStore key. WARNING: This modifies live production data.")]
-    async fn datastore_set(
-        &self,
-        params: Parameters<DataStoreSetParams>,
-    ) -> String {
+    #[tool(
+        description = "Write a value to a DataStore key. WARNING: This modifies live production data."
+    )]
+    async fn datastore_set(&self, params: Parameters<DataStoreSetParams>) -> String {
         match tools::datastore::datastore_set(
-            &self.state, &params.0.store_name, &params.0.key, params.0.value,
-        ).await {
+            &self.state,
+            &params.0.store_name,
+            &params.0.key,
+            params.0.value,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Delete a key from a DataStore. WARNING: This permanently removes live production data.")]
-    async fn datastore_delete(
-        &self,
-        params: Parameters<DataStoreDeleteParams>,
-    ) -> String {
-        match tools::datastore::datastore_delete(&self.state, &params.0.store_name, &params.0.key).await {
+    #[tool(
+        description = "Delete a key from a DataStore. WARNING: This permanently removes live production data."
+    )]
+    async fn datastore_delete(&self, params: Parameters<DataStoreDeleteParams>) -> String {
+        match tools::datastore::datastore_delete(&self.state, &params.0.store_name, &params.0.key)
+            .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
     #[tool(description = "Scan and list all keys in a DataStore with pagination support.")]
-    async fn datastore_scan(
-        &self,
-        params: Parameters<DataStoreScanParams>,
-    ) -> String {
+    async fn datastore_scan(&self, params: Parameters<DataStoreScanParams>) -> String {
         match tools::datastore::datastore_scan(
-            &self.state, &params.0.store_name, params.0.page_size, params.0.max_pages,
-        ).await {
+            &self.state,
+            &params.0.store_name,
+            params.0.page_size,
+            params.0.max_pages,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Start the ScriptProfiler to measure CPU time per function. Optional frequency in Hz (default: 1000).")]
-    async fn profile_start(
-        &self,
-        params: Parameters<ProfileStartParams>,
-    ) -> String {
+    #[tool(
+        description = "Start the ScriptProfiler to measure CPU time per function. Optional frequency in Hz (default: 1000)."
+    )]
+    async fn profile_start(&self, params: Parameters<ProfileStartParams>) -> String {
         match tools::profiler::profile_start(&self.state, params.0.frequency).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -431,7 +444,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Analyze profiling data: slowest functions, CPU hotspots, and optimization suggestions.")]
+    #[tool(
+        description = "Analyze profiling data: slowest functions, CPU hotspots, and optimization suggestions."
+    )]
     async fn profile_analyze(&self) -> String {
         match tools::profiler::profile_analyze(&self.state).await {
             Ok(result) => ok_text(result),
@@ -443,25 +458,27 @@ impl StudioLinkMcp {
     // FAZ 3: DIFFING & TESTING
     // ═══════════════════════════════════════════
 
-    #[tool(description = "Take a snapshot of the current place state (all instances, properties, scripts). Optional name for the snapshot.")]
-    async fn snapshot_take(
-        &self,
-        params: Parameters<SnapshotTakeParams>,
-    ) -> String {
+    #[tool(
+        description = "Take a snapshot of the current place state (all instances, properties, scripts). Optional name for the snapshot."
+    )]
+    async fn snapshot_take(&self, params: Parameters<SnapshotTakeParams>) -> String {
         match tools::diffing::snapshot_take(&self.state, params.0.name.as_deref()).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Compare two snapshots and list all differences (added/removed/changed instances and properties).")]
-    async fn snapshot_compare(
-        &self,
-        params: Parameters<SnapshotCompareParams>,
-    ) -> String {
+    #[tool(
+        description = "Compare two snapshots and list all differences (added/removed/changed instances and properties)."
+    )]
+    async fn snapshot_compare(&self, params: Parameters<SnapshotCompareParams>) -> String {
         match tools::diffing::snapshot_compare(
-            &self.state, &params.0.snapshot_a, &params.0.snapshot_b,
-        ).await {
+            &self.state,
+            &params.0.snapshot_a,
+            &params.0.snapshot_b,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
@@ -475,11 +492,10 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Run TestEZ test suites. Optionally specify a path to run tests for a specific module.")]
-    async fn test_run(
-        &self,
-        params: Parameters<TestRunParams>,
-    ) -> String {
+    #[tool(
+        description = "Run TestEZ test suites. Optionally specify a path to run tests for a specific module."
+    )]
+    async fn test_run(&self, params: Parameters<TestRunParams>) -> String {
         match tools::testing::test_run(&self.state, params.0.path.as_deref()).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -487,10 +503,7 @@ impl StudioLinkMcp {
     }
 
     #[tool(description = "Generate a TestEZ test template for a given script or ModuleScript.")]
-    async fn test_create(
-        &self,
-        params: Parameters<TestCreateParams>,
-    ) -> String {
+    async fn test_create(&self, params: Parameters<TestCreateParams>) -> String {
         match tools::testing::test_create(&self.state, &params.0.target_path).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -509,7 +522,9 @@ impl StudioLinkMcp {
     // FAZ 4: SECURITY & ANALYSIS
     // ═══════════════════════════════════════════
 
-    #[tool(description = "Scan the entire place for security vulnerabilities: unvalidated RemoteEvents, client trust issues, exposed data, missing rate limiting.")]
+    #[tool(
+        description = "Scan the entire place for security vulnerabilities: unvalidated RemoteEvents, client trust issues, exposed data, missing rate limiting."
+    )]
     async fn security_scan(&self) -> String {
         match tools::security::security_scan(&self.state).await {
             Ok(result) => ok_text(result),
@@ -517,7 +532,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Get a formatted security report with risk levels (Critical/High/Medium/Low) and remediation suggestions.")]
+    #[tool(
+        description = "Get a formatted security report with risk levels (Critical/High/Medium/Low) and remediation suggestions."
+    )]
     async fn security_report(&self) -> String {
         match tools::security::security_report(&self.state).await {
             Ok(result) => ok_text(result),
@@ -525,7 +542,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Map all require() chains across the project. Detects circular dependencies, dead code (unrequired modules), and usage statistics.")]
+    #[tool(
+        description = "Map all require() chains across the project. Detects circular dependencies, dead code (unrequired modules), and usage statistics."
+    )]
     async fn dependency_map(&self) -> String {
         match tools::dependencies::dependency_map(&self.state).await {
             Ok(result) => ok_text(result),
@@ -533,7 +552,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Scan for potential memory leaks: undisconnected Connections, undestroyed instances, growing tables, excessive RunService bindings.")]
+    #[tool(
+        description = "Scan for potential memory leaks: undisconnected Connections, undestroyed instances, growing tables, excessive RunService bindings."
+    )]
     async fn memory_scan(&self) -> String {
         match tools::memory::memory_scan(&self.state).await {
             Ok(result) => ok_text(result),
@@ -541,11 +562,10 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Analyze scripts for code quality: deprecated APIs, anti-patterns, naming issues, unused variables, missing type annotations.")]
-    async fn lint_scripts(
-        &self,
-        params: Parameters<LintScriptsParams>,
-    ) -> String {
+    #[tool(
+        description = "Analyze scripts for code quality: deprecated APIs, anti-patterns, naming issues, unused variables, missing type annotations."
+    )]
+    async fn lint_scripts(&self, params: Parameters<LintScriptsParams>) -> String {
         match tools::linter::lint_scripts(&self.state, params.0.path.as_deref()).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -556,7 +576,9 @@ impl StudioLinkMcp {
     // FAZ 5: INSPECTOR TOOLS
     // ═══════════════════════════════════════════
 
-    #[tool(description = "List all animations in the place with their IDs, durations, and priorities.")]
+    #[tool(
+        description = "List all animations in the place with their IDs, durations, and priorities."
+    )]
     async fn animation_list(&self) -> String {
         match tools::animation::animation_list(&self.state).await {
             Ok(result) => ok_text(result),
@@ -565,17 +587,16 @@ impl StudioLinkMcp {
     }
 
     #[tool(description = "Get detailed keyframe information for a specific animation.")]
-    async fn animation_inspect(
-        &self,
-        params: Parameters<AnimationInspectParams>,
-    ) -> String {
+    async fn animation_inspect(&self, params: Parameters<AnimationInspectParams>) -> String {
         match tools::animation::animation_inspect(&self.state, &params.0.animation_id).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Detect conflicting animations that affect the same body parts simultaneously.")]
+    #[tool(
+        description = "Detect conflicting animations that affect the same body parts simultaneously."
+    )]
     async fn animation_conflicts(&self) -> String {
         match tools::animation::animation_conflicts(&self.state).await {
             Ok(result) => ok_text(result),
@@ -583,7 +604,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Start monitoring all RemoteEvent and RemoteFunction traffic (call frequency, data size, spam detection).")]
+    #[tool(
+        description = "Start monitoring all RemoteEvent and RemoteFunction traffic (call frequency, data size, spam detection)."
+    )]
     async fn network_monitor_start(&self) -> String {
         match tools::network::network_monitor_start(&self.state).await {
             Ok(result) => ok_text(result),
@@ -591,7 +614,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Stop network monitoring and return a detailed traffic report with per-Remote statistics and bandwidth estimates.")]
+    #[tool(
+        description = "Stop network monitoring and return a detailed traffic report with per-Remote statistics and bandwidth estimates."
+    )]
     async fn network_monitor_stop(&self) -> String {
         match tools::network::network_monitor_stop(&self.state).await {
             Ok(result) => ok_text(result),
@@ -607,7 +632,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Detect UI issues: overlapping elements, off-screen UI, mobile touch target sizes, ZIndex conflicts, missing layout components.")]
+    #[tool(
+        description = "Detect UI issues: overlapping elements, off-screen UI, mobile touch target sizes, ZIndex conflicts, missing layout components."
+    )]
     async fn ui_analyze(&self) -> String {
         match tools::ui_inspector::ui_analyze(&self.state).await {
             Ok(result) => ok_text(result),
@@ -615,11 +642,10 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Auto-generate Markdown documentation for all ModuleScripts: public functions, parameter types, return types, dependencies.")]
-    async fn docs_generate(
-        &self,
-        params: Parameters<DocsGenerateParams>,
-    ) -> String {
+    #[tool(
+        description = "Auto-generate Markdown documentation for all ModuleScripts: public functions, parameter types, return types, dependencies."
+    )]
+    async fn docs_generate(&self, params: Parameters<DocsGenerateParams>) -> String {
         match tools::docs::docs_generate(&self.state, params.0.path.as_deref()).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -630,11 +656,10 @@ impl StudioLinkMcp {
     // WORKSPACE ANALYSIS
     // ═══════════════════════════════════════════
 
-    #[tool(description = "Comprehensive workspace analysis: coding style (naming, indent, strict mode, type annotations), architecture (framework, services, folder structure), script statistics, issues (deprecated APIs, security, memory leaks, optimization), dependencies (circular, dead modules), and detected patterns/libraries. Run this first on any new workspace.")]
-    async fn workspace_analyze(
-        &self,
-        params: Parameters<WorkspaceAnalyzeParams>,
-    ) -> String {
+    #[tool(
+        description = "Comprehensive workspace analysis: coding style (naming, indent, strict mode, type annotations), architecture (framework, services, folder structure), script statistics, issues (deprecated APIs, security, memory leaks, optimization), dependencies (circular, dead modules), and detected patterns/libraries. Run this first on any new workspace."
+    )]
+    async fn workspace_analyze(&self, params: Parameters<WorkspaceAnalyzeParams>) -> String {
         match tools::workspace::workspace_analyze(&self.state, params.0.path.as_deref()).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -645,18 +670,21 @@ impl StudioLinkMcp {
     // INSTANCE MANAGEMENT
     // ═══════════════════════════════════════════
 
-    #[tool(description = "Get a hierarchical tree of all instances in the place. Optionally specify a path to focus on a subtree and depth to limit traversal.")]
-    async fn get_file_tree(
-        &self,
-        params: Parameters<GetFileTreeParams>,
-    ) -> String {
-        match tools::instance::get_file_tree(&self.state, params.0.path.as_deref(), params.0.depth).await {
+    #[tool(
+        description = "Get a hierarchical tree of all instances in the place. Optionally specify a path to focus on a subtree and depth to limit traversal."
+    )]
+    async fn get_file_tree(&self, params: Parameters<GetFileTreeParams>) -> String {
+        match tools::instance::get_file_tree(&self.state, params.0.path.as_deref(), params.0.depth)
+            .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Get all properties of an instance at the given path, including class-specific properties (BasePart, GuiObject, Light, etc.), attributes, and tags.")]
+    #[tool(
+        description = "Get all properties of an instance at the given path, including class-specific properties (BasePart, GuiObject, Light, etc.), attributes, and tags."
+    )]
     async fn get_instance_properties(
         &self,
         params: Parameters<GetInstancePropertiesParams>,
@@ -667,50 +695,61 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Set a single property on an instance. Supports type hints for Vector3, Color3, UDim2, BrickColor, Enum values.")]
-    async fn set_property(
-        &self,
-        params: Parameters<SetPropertyParams>,
-    ) -> String {
+    #[tool(
+        description = "Set a single property on an instance. Supports type hints for Vector3, Color3, UDim2, BrickColor, Enum values."
+    )]
+    async fn set_property(&self, params: Parameters<SetPropertyParams>) -> String {
         match tools::instance::set_property(
-            &self.state, &params.0.path, &params.0.property, params.0.value, params.0.value_type.as_deref(),
-        ).await {
+            &self.state,
+            &params.0.path,
+            &params.0.property,
+            params.0.value,
+            params.0.value_type.as_deref(),
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Set the same property on multiple instances at once. Provide an array of paths.")]
-    async fn mass_set_property(
-        &self,
-        params: Parameters<MassSetPropertyParams>,
-    ) -> String {
+    #[tool(
+        description = "Set the same property on multiple instances at once. Provide an array of paths."
+    )]
+    async fn mass_set_property(&self, params: Parameters<MassSetPropertyParams>) -> String {
         match tools::instance::mass_set_property(
-            &self.state, params.0.paths, &params.0.property, params.0.value, params.0.value_type.as_deref(),
-        ).await {
+            &self.state,
+            params.0.paths,
+            &params.0.property,
+            params.0.value,
+            params.0.value_type.as_deref(),
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Create a new instance with the given class name under a parent path. Optionally set initial properties.")]
-    async fn create_instance(
-        &self,
-        params: Parameters<CreateInstanceParams>,
-    ) -> String {
+    #[tool(
+        description = "Create a new instance with the given class name under a parent path. Optionally set initial properties."
+    )]
+    async fn create_instance(&self, params: Parameters<CreateInstanceParams>) -> String {
         match tools::instance::create_instance(
-            &self.state, &params.0.class_name, params.0.parent_path.as_deref(), params.0.properties,
-        ).await {
+            &self.state,
+            &params.0.class_name,
+            params.0.parent_path.as_deref(),
+            params.0.properties,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
     #[tool(description = "Delete an instance and all its descendants at the given path.")]
-    async fn delete_instance(
-        &self,
-        params: Parameters<DeleteInstanceParams>,
-    ) -> String {
+    async fn delete_instance(&self, params: Parameters<DeleteInstanceParams>) -> String {
         match tools::instance::delete_instance(&self.state, &params.0.path).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -721,45 +760,50 @@ impl StudioLinkMcp {
     // SCRIPT TOOLS
     // ═══════════════════════════════════════════
 
-    #[tool(description = "Get the source code of a script with line numbers. Works with Script, LocalScript, and ModuleScript.")]
-    async fn get_script_source(
-        &self,
-        params: Parameters<GetScriptSourceParams>,
-    ) -> String {
+    #[tool(
+        description = "Get the source code of a script with line numbers. Works with Script, LocalScript, and ModuleScript."
+    )]
+    async fn get_script_source(&self, params: Parameters<GetScriptSourceParams>) -> String {
         match tools::scripts::get_script_source(&self.state, &params.0.path).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Replace the entire source code of a script. Records a waypoint for undo support.")]
-    async fn set_script_source(
-        &self,
-        params: Parameters<SetScriptSourceParams>,
-    ) -> String {
-        match tools::scripts::set_script_source(&self.state, &params.0.path, &params.0.source).await {
+    #[tool(
+        description = "Replace the entire source code of a script. Records a waypoint for undo support."
+    )]
+    async fn set_script_source(&self, params: Parameters<SetScriptSourceParams>) -> String {
+        match tools::scripts::set_script_source(&self.state, &params.0.path, &params.0.source).await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Search all scripts in the place for a text pattern. Returns matching lines with line numbers and file paths.")]
-    async fn grep_scripts(
-        &self,
-        params: Parameters<GrepScriptsParams>,
-    ) -> String {
-        match tools::scripts::grep_scripts(&self.state, &params.0.pattern, params.0.case_sensitive).await {
+    #[tool(
+        description = "Search all scripts in the place for a text pattern. Returns matching lines with line numbers and file paths."
+    )]
+    async fn grep_scripts(&self, params: Parameters<GrepScriptsParams>) -> String {
+        match tools::scripts::grep_scripts(&self.state, &params.0.pattern, params.0.case_sensitive)
+            .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Search for instances by name or class across the entire place. Use searchBy: 'name', 'class', or 'both'.")]
-    async fn search_objects(
-        &self,
-        params: Parameters<SearchObjectsParams>,
-    ) -> String {
-        match tools::scripts::search_objects(&self.state, &params.0.query, params.0.search_by.as_deref()).await {
+    #[tool(
+        description = "Search for instances by name or class across the entire place. Use searchBy: 'name', 'class', or 'both'."
+    )]
+    async fn search_objects(&self, params: Parameters<SearchObjectsParams>) -> String {
+        match tools::scripts::search_objects(
+            &self.state,
+            &params.0.query,
+            params.0.search_by.as_deref(),
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
@@ -777,7 +821,9 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Redo the last undone action in Roblox Studio using ChangeHistoryService.")]
+    #[tool(
+        description = "Redo the last undone action in Roblox Studio using ChangeHistoryService."
+    )]
     async fn redo(&self) -> String {
         match tools::history::redo(&self.state).await {
             Ok(result) => ok_text(result),
@@ -789,7 +835,9 @@ impl StudioLinkMcp {
     // SESSION MANAGEMENT (Multi-Place Support)
     // ═══════════════════════════════════════════
 
-    #[tool(description = "List all connected Roblox Studio sessions. Each open Studio instance registers as a separate session with its PlaceId and name.")]
+    #[tool(
+        description = "List all connected Roblox Studio sessions. Each open Studio instance registers as a separate session with its PlaceId and name."
+    )]
     async fn list_sessions(&self) -> String {
         match tools::session::list_sessions(&self.state).await {
             Ok(result) => ok_text(result),
@@ -797,18 +845,19 @@ impl StudioLinkMcp {
         }
     }
 
-    #[tool(description = "Switch the active session to a different Studio instance. All subsequent tool calls will be routed to this session.")]
-    async fn switch_session(
-        &self,
-        params: Parameters<SwitchSessionParams>,
-    ) -> String {
+    #[tool(
+        description = "Switch the active session to a different Studio instance. All subsequent tool calls will be routed to this session."
+    )]
+    async fn switch_session(&self, params: Parameters<SwitchSessionParams>) -> String {
         match tools::session::switch_session(&self.state, &params.0.session_id).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
     }
 
-    #[tool(description = "Get information about the currently active Studio session (PlaceId, name, connection status).")]
+    #[tool(
+        description = "Get information about the currently active Studio session (PlaceId, name, connection status)."
+    )]
     async fn get_active_session(&self) -> String {
         match tools::session::get_active_session(&self.state).await {
             Ok(result) => ok_text(result),

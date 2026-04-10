@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 44: get_script_source — Get script source with line numbers
 pub async fn get_script_source(
@@ -16,7 +16,8 @@ pub async fn get_script_source(
         "get_script_source",
         json!({ "path": path }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 45: set_script_source — Set/replace script source
@@ -30,7 +31,8 @@ pub async fn set_script_source(
         "set_script_source",
         json!({ "path": path, "source": source }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 46: grep_scripts — Search all scripts for a pattern
@@ -44,7 +46,8 @@ pub async fn grep_scripts(
         "grep_scripts",
         json!({ "pattern": pattern, "caseSensitive": case_sensitive.unwrap_or(true) }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 47: search_objects — Search instances by name or class
@@ -58,5 +61,6 @@ pub async fn search_objects(
         "search_objects",
         json!({ "query": query, "searchBy": search_by.unwrap_or("name") }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }

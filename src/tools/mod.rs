@@ -1,29 +1,29 @@
+pub mod animation;
 pub mod core;
 pub mod datastore;
-pub mod profiler;
-pub mod diffing;
-pub mod testing;
-pub mod security;
 pub mod dependencies;
-pub mod memory;
-pub mod linter;
-pub mod animation;
-pub mod network;
-pub mod ui_inspector;
+pub mod diffing;
 pub mod docs;
-pub mod workspace;
-pub mod session;
-pub mod instance;
-pub mod scripts;
 pub mod history;
+pub mod instance;
+pub mod linter;
+pub mod memory;
+pub mod network;
+pub mod profiler;
+pub mod scripts;
+pub mod security;
+pub mod session;
+pub mod testing;
+pub mod ui_inspector;
+pub mod workspace;
 
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
+use crate::error::{Result, StudioLinkError};
 use crate::state::{AppState, PluginRequest};
-use crate::error::{StudioLinkError, Result};
 
 /// Default timeout for plugin requests (30 seconds)
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
@@ -58,7 +58,9 @@ pub async fn send_to_plugin(
             s.cleanup_expired();
 
             // Try to find any live session and auto-switch to it
-            let live_session = s.sessions.iter()
+            let live_session = s
+                .sessions
+                .iter()
                 .find(|(_, sess)| sess.last_heartbeat.elapsed().as_secs() < 45)
                 .map(|(id, _)| id.clone());
 
@@ -72,9 +74,11 @@ pub async fn send_to_plugin(
 
         match s.queue_request(tool, args) {
             Some((_id, rx)) => rx,
-            None => return Err(StudioLinkError::PluginError(
-                "No active session. Use list_sessions and switch_session to connect.".into()
-            )),
+            None => {
+                return Err(StudioLinkError::PluginError(
+                    "No active session. Use list_sessions and switch_session to connect.".into(),
+                ))
+            }
         }
     };
 
@@ -85,11 +89,15 @@ pub async fn send_to_plugin(
                 Ok(response.result)
             } else {
                 Err(StudioLinkError::PluginError(
-                    response.error.unwrap_or_else(|| "Unknown plugin error".into())
+                    response
+                        .error
+                        .unwrap_or_else(|| "Unknown plugin error".into()),
                 ))
             }
         }
-        Ok(None) => Err(StudioLinkError::PluginError("Response channel closed".into())),
+        Ok(None) => Err(StudioLinkError::PluginError(
+            "Response channel closed".into(),
+        )),
         Err(_) => Err(StudioLinkError::RequestTimeout(tool.into())),
     }
 }
@@ -143,7 +151,9 @@ async fn send_via_proxy(
         Ok(plugin_response.result)
     } else {
         Err(StudioLinkError::PluginError(
-            plugin_response.error.unwrap_or_else(|| "Unknown plugin error".into())
+            plugin_response
+                .error
+                .unwrap_or_else(|| "Unknown plugin error".into()),
         ))
     }
 }

@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 21: security_scan — Scan the entire place for security vulnerabilities
 /// Checks: RemoteEvent validation, client trust issues, exposed data, rate limiting

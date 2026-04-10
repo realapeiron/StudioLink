@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use tokio::sync::{watch, Mutex, mpsc};
+use tokio::sync::{mpsc, watch, Mutex};
 use uuid::Uuid;
 
 /// A request queued for the Studio plugin to process
@@ -99,7 +99,9 @@ impl AppState {
 
         // Remove old sessions with the same place_id and place_name
         // (handles Studio restart: new Edit session replaces old dead one)
-        let duplicates: Vec<String> = self.sessions.iter()
+        let duplicates: Vec<String> = self
+            .sessions
+            .iter()
             .filter(|(id, s)| {
                 *id != &reg.session_id
                     && s.info.place_id == reg.place_id
@@ -178,10 +180,7 @@ impl AppState {
 
     /// Get info about all connected sessions
     pub fn list_sessions(&self) -> Vec<SessionInfo> {
-        self.sessions
-            .values()
-            .map(|s| s.info.clone())
-            .collect()
+        self.sessions.values().map(|s| s.info.clone()).collect()
     }
 
     /// Get the active session ID
@@ -202,7 +201,11 @@ impl AppState {
     // ═══════════════════════════════════════════
 
     /// Queue a request to the active session and return a receiver for the response
-    pub fn queue_request(&mut self, tool: &str, args: serde_json::Value) -> Option<(String, ResponseReceiver)> {
+    pub fn queue_request(
+        &mut self,
+        tool: &str,
+        args: serde_json::Value,
+    ) -> Option<(String, ResponseReceiver)> {
         let session_id = self.active_session.clone()?;
         self.queue_request_to_session(&session_id, tool, args)
     }

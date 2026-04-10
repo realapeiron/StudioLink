@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 15: snapshot_take — Take a snapshot of the current place state
 pub async fn snapshot_take(
@@ -16,7 +16,8 @@ pub async fn snapshot_take(
         "snapshot_take",
         json!({ "name": name.unwrap_or("auto") }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 16: snapshot_compare — Compare two snapshots and list differences
@@ -30,7 +31,8 @@ pub async fn snapshot_compare(
         "snapshot_compare",
         json!({ "snapshotA": snapshot_a, "snapshotB": snapshot_b }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 17: snapshot_list — List all saved snapshots

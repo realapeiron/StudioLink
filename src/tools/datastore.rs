@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 7: datastore_list — List all DataStore names in the experience
 pub async fn datastore_list(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
@@ -22,7 +22,8 @@ pub async fn datastore_get(
         "datastore_get",
         json!({ "storeName": store_name, "key": key }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 9: datastore_set — Write a value to a DataStore key
@@ -37,7 +38,8 @@ pub async fn datastore_set(
         "datastore_set",
         json!({ "storeName": store_name, "key": key, "value": value }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 10: datastore_delete — Delete a key from a DataStore
@@ -51,7 +53,8 @@ pub async fn datastore_delete(
         "datastore_delete",
         json!({ "storeName": store_name, "key": key }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 11: datastore_scan — Scan all keys in a DataStore
@@ -70,5 +73,6 @@ pub async fn datastore_scan(
             "maxPages": max_pages.unwrap_or(1),
         }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }

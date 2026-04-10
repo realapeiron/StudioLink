@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 25: lint_scripts — Analyze all scripts for code quality issues
 /// Checks: deprecated APIs, anti-patterns, naming conventions, unused variables, type annotations
@@ -17,5 +17,6 @@ pub async fn lint_scripts(
         "lint_scripts",
         json!({ "path": path.unwrap_or("") }),
         EXTENDED_TIMEOUT,
-    ).await
+    )
+    .await
 }

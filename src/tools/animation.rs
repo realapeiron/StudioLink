@@ -2,9 +2,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::state::AppState;
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
+use crate::state::AppState;
 
 /// Tool 26: animation_list — List all animations with ID, duration, priority
 pub async fn animation_list(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
@@ -21,7 +21,8 @@ pub async fn animation_inspect(
         "animation_inspect",
         json!({ "animationId": animation_id }),
         DEFAULT_TIMEOUT,
-    ).await
+    )
+    .await
 }
 
 /// Tool 28: animation_conflicts — Detect conflicting animations

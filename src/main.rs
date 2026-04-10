@@ -70,9 +70,17 @@ async fn main() -> color_eyre::Result<()> {
             // Port taken — verify it's actually a StudioLink instance before entering proxy mode
             let health_url = format!("http://127.0.0.1:{}/health", port);
             let client = reqwest::Client::new();
-            match client.get(&health_url).timeout(std::time::Duration::from_secs(2)).send().await {
+            match client
+                .get(&health_url)
+                .timeout(std::time::Duration::from_secs(2))
+                .send()
+                .await
+            {
                 Ok(resp) if resp.status().is_success() => {
-                    tracing::info!("Proxy mode: verified StudioLink at port {}, forwarding tool calls", port);
+                    tracing::info!(
+                        "Proxy mode: verified StudioLink at port {}, forwarding tool calls",
+                        port
+                    );
                 }
                 _ => {
                     tracing::warn!("Port {} is taken by another application (not StudioLink), proxy mode may not work", port);
