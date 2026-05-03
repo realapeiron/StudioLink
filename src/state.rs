@@ -98,21 +98,26 @@ impl AppState {
         self.cleanup_expired();
 
         // Remove old sessions with the same place_id and place_name
-        // (handles Studio restart: new Edit session replaces old dead one)
-        let duplicates: Vec<String> = self
-            .sessions
-            .iter()
-            .filter(|(id, s)| {
-                *id != &reg.session_id
-                    && s.info.place_id == reg.place_id
-                    && s.info.place_name == reg.place_name
-            })
-            .map(|(id, _)| id.clone())
-            .collect();
+        // (handles Studio restart: new Edit session replaces old dead one).
+        // Skip when place_id == 0: unpublished .rbxl files all report place_id=0
+        // and "Unknown Place", so different files would falsely match. Heartbeat
+        // timeout + auto-recovery handle stale sessions for unpublished places.
+        if reg.place_id != 0 {
+            let duplicates: Vec<String> = self
+                .sessions
+                .iter()
+                .filter(|(id, s)| {
+                    *id != &reg.session_id
+                        && s.info.place_id == reg.place_id
+                        && s.info.place_name == reg.place_name
+                })
+                .map(|(id, _)| id.clone())
+                .collect();
 
-        for dup_id in duplicates {
-            tracing::info!("Removing duplicate session for same place: {}", dup_id);
-            self.unregister_session(&dup_id);
+            for dup_id in duplicates {
+                tracing::info!("Removing duplicate session for same place: {}", dup_id);
+                self.unregister_session(&dup_id);
+            }
         }
 
         let (notify_tx, notify_rx) = watch::channel(false);
@@ -307,5 +312,63 @@ impl AppState {
             tracing::info!("Removing stale session: {}", id);
             self.unregister_session(&id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_state() -> AppState {
+        let (global_notify_tx, _) = watch::channel(false);
+        AppState {
+            sessions: HashMap::new(),
+            active_session: None,
+            response_channels: HashMap::new(),
+            global_notify_tx,
+            proxy_mode: false,
+            proxy_url: String::new(),
+            proxy_client: None,
+        }
+    }
+
+    fn make_reg(session_id: &str, place_id: u64, place_name: &str) -> SessionRegistration {
+        SessionRegistration {
+            session_id: session_id.to_string(),
+            place_id,
+            place_name: place_name.to_string(),
+            game_id: 0,
+        }
+    }
+
+    #[test]
+    fn unpublished_places_coexist() {
+        // Two unpublished .rbxl files both report place_id=0 + "Unknown Place";
+        // dedup by those fields would falsely match different files.
+        let mut s = make_state();
+        s.register_session(make_reg("a", 0, "Unknown Place"));
+        s.register_session(make_reg("b", 0, "Unknown Place"));
+        assert!(s.sessions.contains_key("a"));
+        assert!(s.sessions.contains_key("b"));
+        assert_eq!(s.sessions.len(), 2);
+    }
+
+    #[test]
+    fn published_place_dedup_still_works() {
+        // Regression for a62143c: re-registering same published place evicts the zombie.
+        let mut s = make_state();
+        s.register_session(make_reg("old", 12345, "MyGame"));
+        s.register_session(make_reg("new", 12345, "MyGame"));
+        assert!(!s.sessions.contains_key("old"));
+        assert!(s.sessions.contains_key("new"));
+        assert_eq!(s.sessions.len(), 1);
+    }
+
+    #[test]
+    fn different_published_places_coexist() {
+        let mut s = make_state();
+        s.register_session(make_reg("a", 1, "GameA"));
+        s.register_session(make_reg("b", 2, "GameB"));
+        assert_eq!(s.sessions.len(), 2);
     }
 }
