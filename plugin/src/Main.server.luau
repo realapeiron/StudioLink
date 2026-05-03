@@ -404,6 +404,9 @@ Tools["multi_client_test"] = require(script.Parent.Tools.MultiClientTest)
 -- Place publishing (v0.3.0 / Faz 1)
 Tools["publish_place"] = require(script.Parent.Tools.PublishPlace)
 
+-- Asset audit (v0.3.0 / Faz 1)
+Tools["asset_audit"] = require(script.Parent.Tools.AssetAudit)
+
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
 

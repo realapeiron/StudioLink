@@ -924,6 +924,20 @@ impl StudioLinkMcp {
             Err(e) => err_text(e),
         }
     }
+
+    // ═══════════════════════════════════════════
+    // ASSET AUDIT
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Inventory all meshes, textures, sounds, and animations across Workspace, ReplicatedStorage, ServerStorage, StarterGui, and StarterPlayer. Returns reuse count + example paths + total_seconds (audio/anim) per asset id. NOTE: per-asset byte size is not exposed by Roblox plugin APIs."
+    )]
+    async fn asset_audit(&self) -> String {
+        match tools::asset_audit::asset_audit(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
 }
 
 #[tool_handler]
