@@ -310,7 +310,7 @@ local SERVER_PORT = 34872
 local SERVER_URL = "http://127.0.0.1:" .. SERVER_PORT
 local POLL_INTERVAL = 0.5 -- seconds between poll retries on error
 local REGISTER_RETRY_INTERVAL = 3 -- seconds between registration retries
-local VERSION = "0.2.0"
+local VERSION = "0.5.0"
 
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)

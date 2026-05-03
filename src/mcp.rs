@@ -437,7 +437,7 @@ pub struct MicroprofilerCaptureParams {
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
 
-/// StudioLink MCP Server handler — registers and dispatches all 68 tools
+/// StudioLink MCP Server handler — registers and dispatches all 64 tools
 #[derive(Clone)]
 pub struct StudioLinkMcp {
     pub state: Arc<Mutex<AppState>>,
@@ -1345,7 +1345,7 @@ impl ServerHandler for StudioLinkMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "StudioLink — Advanced Roblox Studio MCP Server with 68 tools for professional game development".into(),
+                "StudioLink — Advanced Roblox Studio MCP Server with 64 tools for professional game development".into(),
             ),
             capabilities: ServerCapabilities::builder()
                 .enable_tools()
