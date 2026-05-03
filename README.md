@@ -1,12 +1,12 @@
 # StudioLink
 
-**Advanced Roblox Studio MCP Server — 53 tools for professional game development with AI**
+**Advanced Roblox Studio MCP Server — 64 tools for professional game development with AI**
 
-StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 53 specialized tools covering code execution, play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
+StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 64 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation, viewport screenshots), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
-Roblox's official MCP server provides 6 basic tools. StudioLink gives you **53 tools** with features like:
+Roblox's official MCP server provides 6 basic tools. StudioLink gives you **64 tools** with features like:
 
 - Execute code in **Server context during play mode** (not just Edit mode)
 - Multi-instance support — manage multiple Studio windows simultaneously
@@ -117,6 +117,37 @@ Roblox's official MCP server provides 6 basic tools. StudioLink gives you **53 t
 | Tool | Description |
 |------|-------------|
 | `asset_audit` | Inventory meshes, textures, sounds, animations across the place with reuse counts and example paths. Per-asset byte size is not exposed by Roblox APIs. |
+
+### Character Control (3 tools, v0.4.0, in-play)
+| Tool | Description |
+|------|-------------|
+| `character_moveto` | Walk a player's character to (x,y,z) via Humanoid:MoveTo. Defaults to waiting for MoveToFinished (8s timeout). |
+| `character_teleport` | Instant Player.Character:PivotTo. Accepts position-only or position + look-at. anchor_during=true avoids physics blowups. |
+| `character_action` | Combined Humanoid op: jump / sit / unsit / set_walkspeed / set_jumppower / set_health / heal / kill. |
+
+### UI Manipulation (3 tools, v0.4.0, in-play)
+| Tool | Description |
+|------|-------------|
+| `ui_click` | Trigger a GuiButton via gui:Activate(). Selectors: {path}, {tag}, {attribute}. |
+| `ui_set_text` | Set Text of TextBox / TextLabel / TextButton. Replicates from server. |
+| `ui_get_state` | Read GuiObject properties. Default: Text, Visible, AbsolutePosition, AbsoluteSize, Position, Size. |
+
+### Test Scenarios (2 tools, v0.4.0, in-play)
+| Tool | Description |
+|------|-------------|
+| `wait_for_condition` | Poll a property until comparison (==, !=, >, >=, <, <=) against target is true, or timeout (max 110s). |
+| `wait_for_event` | Connect to an event property (Touched, OnServerEvent, Changed, …) and wait for first fire with optional captured args. |
+
+### Input Simulation (2 tools, v0.4.0)
+| Tool | Description |
+|------|-------------|
+| `vim_capability_test` | Probe VirtualInputManager methods (SendKeyEvent, etc.) to find which are callable in the current Studio context. Run in Edit AND during Play. |
+| `input_simulate` | Drive keyboard/mouse via VirtualInputManager. Action types: key, mouse_click, mouse_move, key_combo. Strategy: vim direct (auto). |
+
+### Viewport Screenshot (1 tool, v0.4.0, macOS)
+| Tool | Description |
+|------|-------------|
+| `viewport_screenshot` | Capture the Studio viewport via StudioService:TakeScreenshot() and return base64 PNG. macOS path resolution; pass override_dir elsewhere. 20MB cap. |
 
 ## Architecture
 
