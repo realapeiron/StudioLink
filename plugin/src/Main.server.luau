@@ -164,6 +164,14 @@ marker.Parent = game:GetService("ReplicatedStorage")
 			local sts = game:FindFirstChildOfClass("StudioTestService") :: any
 			if sts then
 				pcall(function() sts:EndTest({}) end)
+				-- Schedule self-unregister AFTER the response is sent so the
+				-- active session falls back to Edit instead of dangling on a
+				-- dead Play Server. state.rs::unregister_session auto-switches.
+				task.defer(function()
+					pcall(function()
+						httpRequest("POST", "/unregister", { session_id = SERVER_SESSION_ID })
+					end)
+				end)
 				return true, "Stopped from Server context", nil
 			end
 			return false, nil, "StudioTestService not found"

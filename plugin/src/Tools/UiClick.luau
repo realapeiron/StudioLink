@@ -18,33 +18,38 @@ return function(args: { [string]: any }): (boolean, any, string?)
 	end
 
 	if not instance:IsA("GuiButton") then
-		return false,
-			nil,
-			"selector resolved to " .. instance.ClassName .. ", not a GuiButton"
+		return false, nil, "selector resolved to " .. instance.ClassName .. ", not a GuiButton"
 	end
 
-	-- GuiButton:Activate() fires the Activated event. Roblox added it in 2024.
-	-- Server-side listeners trigger normally; client-side listeners run if
-	-- the change is replicated to the client (Activated propagates).
-	local activate = (instance :: any).Activate
-	if type(activate) ~= "function" then
-		return false,
-			nil,
-			"GuiButton:Activate() unavailable (older Studio?). Use input_simulate as a fallback."
+	-- Best effort: if a Bindable-style hook is attached, fire it. Some games
+	-- expose a BindableEvent named "_studiolink_click" alongside the button
+	-- specifically so external tools can drive it; if found, we fire that.
+	local hook = instance:FindFirstChild("_studiolink_click")
+	if hook and hook:IsA("BindableEvent") then
+		local ok, err = pcall(function()
+			(hook :: BindableEvent):Fire(player)
+		end)
+		if ok then
+			return true,
+				{
+					target_path = instance:GetFullName(),
+					method_used = "bindable_hook",
+					hook_name = "_studiolink_click",
+				},
+				nil
+		end
+		return false, nil, "BindableEvent fire failed: " .. tostring(err)
 	end
 
-	local ok, err = pcall(function()
-		(instance :: any):Activate()
-	end)
-	if not ok then
-		return false, nil, "Activate() failed: " .. tostring(err)
-	end
-
-	return true,
-		{
-			target_path = instance:GetFullName(),
-			method_used = "activate",
-			note = "Activated event fired. Client-side listeners run via replication.",
-		},
-		nil
+	-- No hook present. Roblox does NOT expose a way to synthesize the
+	-- built-in Activated/MouseButton1Click events from server context — those
+	-- require real client input or RobloxScriptSecurity. Surface this clearly.
+	return false,
+		nil,
+		"ui_click cannot synthesize a real GuiButton click from server context. "
+			.. "Roblox built-in events (Activated, MouseButton1Click) cannot be fired manually. "
+			.. "Workaround A: place a BindableEvent named '_studiolink_click' under the button — "
+			.. "this tool will Fire() it with the player. "
+			.. "Workaround B: use ui_set_text + read state, or implement a UIBridge LocalScript "
+			.. "(planned for v0.6+) that listens on a RemoteEvent."
 end

@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "studiolink": {
+      "command": "/Users/apeiron/Development/StudioLink/target/release/studiolink"
+    }
+  }
+}
