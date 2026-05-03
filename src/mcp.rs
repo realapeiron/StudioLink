@@ -263,6 +263,12 @@ pub struct PlaceVersionHistoryParams {
     pub place_id: Option<u64>,
 }
 
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct PublishPlaceParams {
+    /// Version type: "Saved" (default) or "Published".
+    pub version_type: Option<String>,
+}
+
 // --- Multi-Client Testing ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -890,6 +896,16 @@ impl StudioLinkMcp {
     )]
     async fn place_version_history(&self, params: Parameters<PlaceVersionHistoryParams>) -> String {
         match tools::publish::place_version_history(&self.state, params.0.place_id).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Open Studio's publish dialog for the active place. version_type is 'Saved' (default) or 'Published'. The user must complete the dialog manually — true headless publish requires RobloxScriptSecurity which plugins don't have. Returns immediately with dialog_opened=true."
+    )]
+    async fn publish_place(&self, params: Parameters<PublishPlaceParams>) -> String {
+        match tools::publish::publish_place(&self.state, params.0.version_type).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

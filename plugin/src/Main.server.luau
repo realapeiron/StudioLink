@@ -401,6 +401,9 @@ Tools["redo"] = function(args) return UndoRedo.redo(args) end
 -- Multi-client testing (v0.3.0 / Faz 1)
 Tools["multi_client_test"] = require(script.Parent.Tools.MultiClientTest)
 
+-- Place publishing (v0.3.0 / Faz 1)
+Tools["publish_place"] = require(script.Parent.Tools.PublishPlace)
+
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
 
