@@ -281,7 +281,7 @@ pub struct MultiClientTestParams {
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
 
-/// StudioLink MCP Server handler — registers and dispatches all 49 tools
+/// StudioLink MCP Server handler — registers and dispatches all 53 tools
 #[derive(Clone)]
 pub struct StudioLinkMcp {
     pub state: Arc<Mutex<AppState>>,
@@ -945,7 +945,7 @@ impl ServerHandler for StudioLinkMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "StudioLink — Advanced Roblox Studio MCP Server with 49 tools for professional game development".into(),
+                "StudioLink — Advanced Roblox Studio MCP Server with 53 tools for professional game development".into(),
             ),
             capabilities: ServerCapabilities::builder()
                 .enable_tools()

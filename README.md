@@ -1,12 +1,12 @@
 # StudioLink
 
-**Advanced Roblox Studio MCP Server — 49 tools for professional game development with AI**
+**Advanced Roblox Studio MCP Server — 53 tools for professional game development with AI**
 
-StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 36 specialized tools covering code execution, play testing, security auditing, performance profiling, DataStore debugging, and much more.
+StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 53 specialized tools covering code execution, play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
-Roblox's official MCP server provides 6 basic tools. StudioLink gives you **49 tools** with features like:
+Roblox's official MCP server provides 6 basic tools. StudioLink gives you **53 tools** with features like:
 
 - Execute code in **Server context during play mode** (not just Edit mode)
 - Multi-instance support — manage multiple Studio windows simultaneously
@@ -101,6 +101,22 @@ Roblox's official MCP server provides 6 basic tools. StudioLink gives you **49 t
 | Tool | Description |
 |------|-------------|
 | `docs_generate` | Auto-generate Markdown docs for all ModuleScripts |
+
+### Place Publishing (2 tools, v0.3.0)
+| Tool | Description |
+|------|-------------|
+| `publish_place` | Open Studio's publish dialog (StudioService:PublishAs). User completes the dialog manually — true headless publish needs RobloxScriptSecurity. |
+| `place_version_history` | List published versions (currently a stub — Open Cloud doesn't expose versions:list yet). |
+
+### Multi-Client Testing (1 tool, v0.3.0)
+| Tool | Description |
+|------|-------------|
+| `multi_client_test` | Spawn 1-8 play-mode clients via StudioTestService. Each client + the server register as separate StudioLink sessions; use `list_sessions` to route tool calls. |
+
+### Asset Management (1 tool, v0.3.0)
+| Tool | Description |
+|------|-------------|
+| `asset_audit` | Inventory meshes, textures, sounds, animations across the place with reuse counts and example paths. Per-asset byte size is not exposed by Roblox APIs. |
 
 ## Architecture
 
