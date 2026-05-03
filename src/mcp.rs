@@ -255,6 +255,14 @@ pub struct SwitchSessionParams {
     pub session_id: String,
 }
 
+// --- Place Publishing ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct PlaceVersionHistoryParams {
+    /// PlaceId to query. Defaults to the active session's place_id.
+    pub place_id: Option<u64>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -860,6 +868,20 @@ impl StudioLinkMcp {
     )]
     async fn get_active_session(&self) -> String {
         match tools::session::get_active_session(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // PLACE PUBLISHING
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "List published versions of a place. Currently returns {supported: false} because Open Cloud does not yet expose a versions:list endpoint (5/2026). Use Studio's File > Game Settings > Versions for now."
+    )]
+    async fn place_version_history(&self, params: Parameters<PlaceVersionHistoryParams>) -> String {
+        match tools::publish::place_version_history(&self.state, params.0.place_id).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

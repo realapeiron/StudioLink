@@ -10,6 +10,7 @@ pub mod linter;
 pub mod memory;
 pub mod network;
 pub mod profiler;
+pub mod publish;
 pub mod scripts;
 pub mod security;
 pub mod session;
