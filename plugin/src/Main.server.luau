@@ -171,6 +171,11 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		return false, nil, "Only 'stop' is supported from Server context"
 	end
 
+	-- In-game automation tools (v0.4.0 / Faz 2) — runnable from Server context
+	ServerTools["character_moveto"] = require(script.Parent.Tools.CharacterMoveTo)
+	ServerTools["character_teleport"] = require(script.Parent.Tools.CharacterTeleport)
+	ServerTools["character_action"] = require(script.Parent.Tools.CharacterAction)
+
 	-- Execute tool in Server context
 	local function executeServerTool(request: any): any
 		local toolName = request.tool
@@ -180,7 +185,7 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		if not handler then
 			return {
 				id = id, success = false, result = "(no result)",
-				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play",
+				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play, character_moveto, character_teleport, character_action",
 			}
 		end
 		local ok, success, result, err = pcall(handler, args)
@@ -409,6 +414,9 @@ Tools["asset_audit"] = require(script.Parent.Tools.AssetAudit)
 
 -- In-game automation (v0.4.0 / Faz 2)
 Tools["vim_capability_test"] = require(script.Parent.Tools.VimCapabilityTest)
+Tools["character_moveto"] = require(script.Parent.Tools.CharacterMoveTo)
+Tools["character_teleport"] = require(script.Parent.Tools.CharacterTeleport)
+Tools["character_action"] = require(script.Parent.Tools.CharacterAction)
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)

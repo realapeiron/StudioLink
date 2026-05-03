@@ -1,5 +1,6 @@
 pub mod animation;
 pub mod asset_audit;
+pub mod character;
 pub mod core;
 pub mod datastore;
 pub mod dependencies;

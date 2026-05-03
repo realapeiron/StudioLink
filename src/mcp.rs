@@ -277,6 +277,40 @@ pub struct MultiClientTestParams {
     pub num_players: Option<u32>,
 }
 
+// --- Character Control (in-play) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct CharacterMovetoParams {
+    /// Target position [x, y, z].
+    pub target: [f64; 3],
+    /// Player username or "@first" (default).
+    pub player: Option<String>,
+    /// If true (default), block until MoveToFinished or timeout.
+    pub wait_finished: Option<bool>,
+    /// Timeout in seconds when wait_finished=true. Default: 8.
+    pub timeout_secs: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct CharacterTeleportParams {
+    /// [x,y,z] for position only, or [x,y,z, lookX,lookY,lookZ] for position + look-at.
+    pub target: Vec<f64>,
+    /// Player username or "@first" (default).
+    pub player: Option<String>,
+    /// Anchor HumanoidRootPart for one frame to avoid physics blowups. Default: false.
+    pub anchor_during: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct CharacterActionParams {
+    /// One of: jump, sit, unsit, set_walkspeed, set_jumppower, set_health, heal, kill.
+    pub action: String,
+    /// Required for set_walkspeed / set_jumppower / set_health.
+    pub value: Option<f64>,
+    /// Player username or "@first" (default).
+    pub player: Option<String>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -948,6 +982,53 @@ impl StudioLinkMcp {
     )]
     async fn vim_capability_test(&self) -> String {
         match tools::input::vim_capability_test(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // CHARACTER CONTROL (Faz 2 / v0.4.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Walk a player's character to (x,y,z) via Humanoid:MoveTo. Default waits for MoveToFinished (8s timeout); set wait_finished=false for fire-and-forget. Requires play mode. Switch to the play-server session first via switch_session."
+    )]
+    async fn character_moveto(&self, params: Parameters<CharacterMovetoParams>) -> String {
+        let p = params.0;
+        match tools::character::character_moveto(
+            &self.state,
+            p.target,
+            p.player,
+            p.wait_finished,
+            p.timeout_secs,
+        )
+        .await
+        {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Instant teleport via Player.Character:PivotTo. Pass [x,y,z] for position only or [x,y,z, lookX,lookY,lookZ] for position + look-at. anchor_during=true freezes the rootpart for 1 frame to avoid physics blowups."
+    )]
+    async fn character_teleport(&self, params: Parameters<CharacterTeleportParams>) -> String {
+        let p = params.0;
+        match tools::character::character_teleport(&self.state, p.target, p.player, p.anchor_during)
+            .await
+        {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Combined Humanoid actions: jump | sit | unsit | set_walkspeed | set_jumppower | set_health | heal | kill. set_* and set_health require numeric value. Returns current_health afterwards."
+    )]
+    async fn character_action(&self, params: Parameters<CharacterActionParams>) -> String {
+        let p = params.0;
+        match tools::character::character_action(&self.state, p.action, p.value, p.player).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
