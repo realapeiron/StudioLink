@@ -20,6 +20,7 @@ pub mod scripts;
 pub mod security;
 pub mod session;
 pub mod testing;
+pub mod ui;
 pub mod ui_inspector;
 pub mod workspace;
 

@@ -341,6 +341,36 @@ pub struct WaitForEventParams {
     pub capture_args: Option<bool>,
 }
 
+// --- UI Manipulation (in-play) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct UiClickParams {
+    /// Selector: {"path": "PlayerGui.HUD.PlayBtn"} or {"tag": "..."} or {"attribute": {"key", "value"}}.
+    pub selector: Value,
+    /// Player username or "@first" (default).
+    pub player: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct UiSetTextParams {
+    /// Selector for a TextBox / TextLabel / TextButton.
+    pub selector: Value,
+    /// New text value.
+    pub text: String,
+    /// Player username or "@first" (default).
+    pub player: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct UiGetStateParams {
+    /// Selector for a GuiObject.
+    pub selector: Value,
+    /// Property names to read. Default: Text, Visible, AbsolutePosition, AbsoluteSize, Position, Size.
+    pub properties: Option<Vec<String>>,
+    /// Player username or "@first" (default).
+    pub player: Option<String>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1103,6 +1133,43 @@ impl StudioLinkMcp {
         )
         .await
         {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // UI MANIPULATION (Faz 2 / v0.4.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Trigger a GuiButton's Activated event via gui:Activate(). Selector accepts {path: 'PlayerGui.HUD.PlayBtn'} (path under player), {tag: '...'}, or {attribute: {key, value}}. Server-side listeners fire immediately; client-side listeners run via replication."
+    )]
+    async fn ui_click(&self, params: Parameters<UiClickParams>) -> String {
+        let p = params.0;
+        match tools::ui::ui_click(&self.state, p.selector, p.player).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Set the Text property of a TextBox / TextLabel / TextButton. Server-side property write replicates to the client. Returns previous_text and new_text."
+    )]
+    async fn ui_set_text(&self, params: Parameters<UiSetTextParams>) -> String {
+        let p = params.0;
+        match tools::ui::ui_set_text(&self.state, p.selector, p.text, p.player).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Read selected properties of a GuiObject. Default: Text, Visible, AbsolutePosition, AbsoluteSize, Position, Size. Vector2/UDim2/Color3 values serialize to arrays."
+    )]
+    async fn ui_get_state(&self, params: Parameters<UiGetStateParams>) -> String {
+        let p = params.0;
+        match tools::ui::ui_get_state(&self.state, p.selector, p.properties, p.player).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
