@@ -423,6 +423,16 @@ pub struct ScriptPatchParams {
     pub new_source: String,
 }
 
+// --- Microprofiler ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct MicroprofilerCaptureParams {
+    /// Luau code to execute and profile.
+    pub code: String,
+    /// Optional label for debug.profilebegin (default: "studiolink_capture").
+    pub label: Option<String>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1306,6 +1316,24 @@ impl StudioLinkMcp {
     async fn script_patch(&self, params: Parameters<ScriptPatchParams>) -> String {
         let p = params.0;
         match tools::script_patch::script_patch(&self.state, p.module_path, p.new_source).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // MICROPROFILER (Faz 3 / v0.5.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Wrap a Luau code block in debug.profilebegin/end and measure wall time + Lua heap delta. NOTE: Studio's MicroProfiler GUI export is not exposed by Roblox APIs — this is script-level profiling only (no per-frame Render/Physics/Network breakdown)."
+    )]
+    async fn microprofiler_capture(
+        &self,
+        params: Parameters<MicroprofilerCaptureParams>,
+    ) -> String {
+        let p = params.0;
+        match tools::profiler_v2::microprofiler_capture(&self.state, p.code, p.label).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

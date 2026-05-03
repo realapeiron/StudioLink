@@ -15,6 +15,7 @@ pub mod memory;
 pub mod multi_client;
 pub mod network;
 pub mod profiler;
+pub mod profiler_v2;
 pub mod publish;
 pub mod scenario;
 pub mod screenshot;

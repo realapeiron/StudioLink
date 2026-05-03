@@ -437,6 +437,7 @@ Tools["viewport_screenshot"] = require(script.Parent.Tools.ViewportScreenshot)
 Tools["error_history"] = require(script.Parent.Tools.ErrorHistory)
 Tools["crash_dump"] = require(script.Parent.Tools.CrashDump)
 Tools["script_patch"] = require(script.Parent.Tools.ScriptPatch)
+Tools["microprofiler_capture"] = require(script.Parent.Tools.MicroprofilerCapture)
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
