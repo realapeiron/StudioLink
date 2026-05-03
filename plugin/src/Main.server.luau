@@ -180,6 +180,7 @@ marker.Parent = game:GetService("ReplicatedStorage")
 	ServerTools["ui_click"] = require(script.Parent.Tools.UiClick)
 	ServerTools["ui_set_text"] = require(script.Parent.Tools.UiSetText)
 	ServerTools["ui_get_state"] = require(script.Parent.Tools.UiGetState)
+	ServerTools["input_simulate"] = require(script.Parent.Tools.InputSimulate)
 
 	-- Execute tool in Server context
 	local function executeServerTool(request: any): any
@@ -190,7 +191,7 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		if not handler then
 			return {
 				id = id, success = false, result = "(no result)",
-				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play, character_moveto, character_teleport, character_action, wait_for_condition, wait_for_event, ui_click, ui_set_text, ui_get_state",
+				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play, character_moveto, character_teleport, character_action, wait_for_condition, wait_for_event, ui_click, ui_set_text, ui_get_state, input_simulate",
 			}
 		end
 		local ok, success, result, err = pcall(handler, args)
@@ -427,6 +428,7 @@ Tools["wait_for_event"] = require(script.Parent.Tools.WaitForEvent)
 Tools["ui_click"] = require(script.Parent.Tools.UiClick)
 Tools["ui_set_text"] = require(script.Parent.Tools.UiSetText)
 Tools["ui_get_state"] = require(script.Parent.Tools.UiGetState)
+Tools["input_simulate"] = require(script.Parent.Tools.InputSimulate)
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)

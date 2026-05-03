@@ -371,6 +371,18 @@ pub struct UiGetStateParams {
     pub player: Option<String>,
 }
 
+// --- Input Simulation ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct InputSimulateParams {
+    /// Array of action objects. Each action has a "type" field: "key" {key, mode?, duration_ms?}, "mouse_click" {position, button?, hold_ms?}, "mouse_move" {position}, or "key_combo" {keys, duration_ms?}.
+    pub actions: Vec<Value>,
+    /// Strategy: "vim" (direct VirtualInputManager) | "injection" (NOT YET IMPLEMENTED) | "auto" (default).
+    pub strategy: Option<String>,
+    /// Delay between actions in milliseconds. Default: 16 (~1 frame at 60fps).
+    pub between_action_delay_ms: Option<u32>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1170,6 +1182,28 @@ impl StudioLinkMcp {
     async fn ui_get_state(&self, params: Parameters<UiGetStateParams>) -> String {
         let p = params.0;
         match tools::ui::ui_get_state(&self.state, p.selector, p.properties, p.player).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // INPUT SIMULATION (Faz 2 / v0.4.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Drive Studio's keyboard/mouse via VirtualInputManager. Each action is {type, ...}: 'key' {key, mode='tap'|'press'|'release', duration_ms}, 'mouse_click' {position:[x,y], button='Left'|'Right'|'Middle', hold_ms}, 'mouse_move' {position:[x,y]}, 'key_combo' {keys:[...]}. Strategy 'vim' (direct) or 'auto' (default). Run vim_capability_test first."
+    )]
+    async fn input_simulate(&self, params: Parameters<InputSimulateParams>) -> String {
+        let p = params.0;
+        match tools::input::input_simulate(
+            &self.state,
+            p.actions,
+            p.strategy,
+            p.between_action_delay_ms,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
