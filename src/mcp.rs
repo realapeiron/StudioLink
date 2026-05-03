@@ -311,6 +311,36 @@ pub struct CharacterActionParams {
     pub player: Option<String>,
 }
 
+// --- Test Scenario Primitives ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct WaitForConditionParams {
+    /// Dot-separated path to the instance, e.g. "Workspace.Counter".
+    pub instance_path: String,
+    /// Property name to read each poll, e.g. "Value".
+    pub property: String,
+    /// Comparison operator: ==, !=, >, >=, <, <=. Default: ==.
+    pub operator: Option<String>,
+    /// Value to compare against.
+    pub target: Value,
+    /// Poll interval in milliseconds. Default: 100.
+    pub poll_interval_ms: Option<u32>,
+    /// Timeout in seconds (max 110). Default: 30.
+    pub timeout_secs: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct WaitForEventParams {
+    /// Dot-separated path to the instance hosting the event.
+    pub instance_path: String,
+    /// Event property name, e.g. "Touched", "OnServerEvent", "Changed".
+    pub event_name: String,
+    /// Timeout in seconds (max 110). Default: 30.
+    pub timeout_secs: Option<u32>,
+    /// If true (default), captured args (stringified) are returned on fire.
+    pub capture_args: Option<bool>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1029,6 +1059,50 @@ impl StudioLinkMcp {
     async fn character_action(&self, params: Parameters<CharacterActionParams>) -> String {
         let p = params.0;
         match tools::character::character_action(&self.state, p.action, p.value, p.player).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // TEST SCENARIO PRIMITIVES (Faz 2 / v0.4.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Poll a property of an instance until it satisfies a comparison (==, !=, >, >=, <, <=) against target, or until timeout (max 110s). Returns satisfied=true on match, satisfied=false on timeout."
+    )]
+    async fn wait_for_condition(&self, params: Parameters<WaitForConditionParams>) -> String {
+        let p = params.0;
+        match tools::scenario::wait_for_condition(
+            &self.state,
+            p.instance_path,
+            p.property,
+            p.operator,
+            p.target,
+            p.poll_interval_ms,
+            p.timeout_secs,
+        )
+        .await
+        {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Connect to an event property of an instance (Touched, OnServerEvent, Changed, etc.) and wait for it to fire once or until timeout (max 110s). Returns fired=true with captured_args (stringified) on success."
+    )]
+    async fn wait_for_event(&self, params: Parameters<WaitForEventParams>) -> String {
+        let p = params.0;
+        match tools::scenario::wait_for_event(
+            &self.state,
+            p.instance_path,
+            p.event_name,
+            p.timeout_secs,
+            p.capture_args,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

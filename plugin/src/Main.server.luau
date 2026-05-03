@@ -175,6 +175,8 @@ marker.Parent = game:GetService("ReplicatedStorage")
 	ServerTools["character_moveto"] = require(script.Parent.Tools.CharacterMoveTo)
 	ServerTools["character_teleport"] = require(script.Parent.Tools.CharacterTeleport)
 	ServerTools["character_action"] = require(script.Parent.Tools.CharacterAction)
+	ServerTools["wait_for_condition"] = require(script.Parent.Tools.WaitForCondition)
+	ServerTools["wait_for_event"] = require(script.Parent.Tools.WaitForEvent)
 
 	-- Execute tool in Server context
 	local function executeServerTool(request: any): any
@@ -185,7 +187,7 @@ marker.Parent = game:GetService("ReplicatedStorage")
 		if not handler then
 			return {
 				id = id, success = false, result = "(no result)",
-				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play, character_moveto, character_teleport, character_action",
+				error = "Tool '" .. tostring(toolName) .. "' not available in Server context. Available: run_code, get_console_output, get_studio_mode, start_stop_play, character_moveto, character_teleport, character_action, wait_for_condition, wait_for_event",
 			}
 		end
 		local ok, success, result, err = pcall(handler, args)
@@ -417,6 +419,8 @@ Tools["vim_capability_test"] = require(script.Parent.Tools.VimCapabilityTest)
 Tools["character_moveto"] = require(script.Parent.Tools.CharacterMoveTo)
 Tools["character_teleport"] = require(script.Parent.Tools.CharacterTeleport)
 Tools["character_action"] = require(script.Parent.Tools.CharacterAction)
+Tools["wait_for_condition"] = require(script.Parent.Tools.WaitForCondition)
+Tools["wait_for_event"] = require(script.Parent.Tools.WaitForEvent)
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)

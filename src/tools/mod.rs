@@ -15,6 +15,7 @@ pub mod multi_client;
 pub mod network;
 pub mod profiler;
 pub mod publish;
+pub mod scenario;
 pub mod scripts;
 pub mod security;
 pub mod session;
