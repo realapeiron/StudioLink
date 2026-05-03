@@ -6,6 +6,7 @@ pub mod dependencies;
 pub mod diffing;
 pub mod docs;
 pub mod history;
+pub mod input;
 pub mod instance;
 pub mod linter;
 pub mod memory;

@@ -938,6 +938,20 @@ impl StudioLinkMcp {
             Err(e) => err_text(e),
         }
     }
+
+    // ═══════════════════════════════════════════
+    // INPUT (Faz 2 / v0.4.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Probe VirtualInputManager methods (SendKeyEvent, SendMouseButtonEvent, etc.) to find out which are callable in the current Studio context. Run in Edit mode AND during Play to compare security levels. Result is cached on _G.StudioLink_VimReport for input_simulate's strategy selection."
+    )]
+    async fn vim_capability_test(&self) -> String {
+        match tools::input::vim_capability_test(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
 }
 
 #[tool_handler]
