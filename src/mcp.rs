@@ -395,6 +395,24 @@ pub struct ViewportScreenshotParams {
     pub override_dir: Option<String>,
 }
 
+// --- Logs / Errors ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct ErrorHistoryParams {
+    /// Filter by message type: "Output", "Info", "Warning", "Error". Omit for all.
+    pub message_type: Option<String>,
+    /// Substring filter (plain text, not regex).
+    pub pattern: Option<String>,
+    /// Max entries to return (newest first). Default: 100.
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct CrashDumpParams {
+    /// Time window in seconds. Default: 30.
+    pub window_secs: Option<u32>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1238,6 +1256,31 @@ impl StudioLinkMcp {
         )
         .await
         {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // LOGS & ERRORS (Faz 3 / v0.5.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Read LogService:GetLogHistory() entries with optional filtering by message_type (Output/Info/Warning/Error) and substring pattern. Returns up to `limit` newest matches (default 100)."
+    )]
+    async fn error_history(&self, params: Parameters<ErrorHistoryParams>) -> String {
+        let p = params.0;
+        match tools::logs::error_history(&self.state, p.message_type, p.pattern, p.limit).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Snapshot recent log activity within window_secs (default 30) with the error subset isolated and stack-trace patterns flagged. Studio process crashes (.dmp) are NOT accessible from plugin context — this covers logical errors only."
+    )]
+    async fn crash_dump(&self, params: Parameters<CrashDumpParams>) -> String {
+        match tools::logs::crash_dump(&self.state, params.0.window_secs).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

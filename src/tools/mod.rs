@@ -10,6 +10,7 @@ pub mod history;
 pub mod input;
 pub mod instance;
 pub mod linter;
+pub mod logs;
 pub mod memory;
 pub mod multi_client;
 pub mod network;
