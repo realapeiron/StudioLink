@@ -1,8 +1,8 @@
 [package]
 name = "studiolink"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
-description = "Advanced Roblox Studio MCP Server — 64 tools for professional game development"
+description = "Advanced Roblox Studio MCP Server — 68 tools for professional game development"
 license = "MIT"
 repository = "https://github.com/realapeiron/StudioLink"
 keywords = ["roblox", "mcp", "studio", "gamedev"]

@@ -1,12 +1,12 @@
 # StudioLink
 
-**Advanced Roblox Studio MCP Server — 64 tools for professional game development with AI**
+**Advanced Roblox Studio MCP Server — 68 tools for professional game development with AI**
 
-StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 64 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation, viewport screenshots), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
+StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 68 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation, viewport screenshots), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
-Roblox's official MCP server provides 6 basic tools. StudioLink gives you **64 tools** with features like:
+Roblox's official MCP server provides 6 basic tools. StudioLink gives you **68 tools** with features like:
 
 - Execute code in **Server context during play mode** (not just Edit mode)
 - Multi-instance support — manage multiple Studio windows simultaneously
@@ -148,6 +148,14 @@ Roblox's official MCP server provides 6 basic tools. StudioLink gives you **64 t
 | Tool | Description |
 |------|-------------|
 | `viewport_screenshot` | Capture the Studio viewport via StudioService:TakeScreenshot() and return base64 PNG. macOS path resolution; pass override_dir elsewhere. 20MB cap. |
+
+### Debugging Deep Dive (4 tools, v0.5.0)
+| Tool | Description |
+|------|-------------|
+| `error_history` | Read LogService:GetLogHistory() with filtering by message_type (Output/Info/Warning/Error) and substring pattern. Newest first, configurable limit. |
+| `crash_dump` | Snapshot recent log activity within a time window (default 30s) with the error subset isolated and stack-trace patterns flagged. Studio process crashes are NOT accessible from plugin context. |
+| `script_patch` | Replace a Script/LocalScript/ModuleScript's source with diff stats and ChangeHistoryService waypoints. NOT live hot-reload — requires next require() / play restart. |
+| `microprofiler_capture` | Wrap a Luau code block in debug.profilebegin/end and measure wall time + Lua heap delta. Script-level only — Studio's MicroProfiler GUI export is not exposed. |
 
 ## Architecture
 
