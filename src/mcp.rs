@@ -263,6 +263,14 @@ pub struct PlaceVersionHistoryParams {
     pub place_id: Option<u64>,
 }
 
+// --- Multi-Client Testing ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct MultiClientTestParams {
+    /// Number of clients to spawn (1-8). Default: 2.
+    pub num_players: Option<u32>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -882,6 +890,20 @@ impl StudioLinkMcp {
     )]
     async fn place_version_history(&self, params: Parameters<PlaceVersionHistoryParams>) -> String {
         match tools::publish::place_version_history(&self.state, params.0.place_id).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // MULTI-CLIENT TESTING
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Start a play-mode test with N clients (1-8, default 2). Wraps StudioTestService:ExecutePlayModeAsync. After it starts, each client + the server register as separate StudioLink sessions — use list_sessions to see them and switch_session to route tool calls. Returns immediately; play continues until stopped."
+    )]
+    async fn multi_client_test(&self, params: Parameters<MultiClientTestParams>) -> String {
+        match tools::multi_client::multi_client_test(&self.state, params.0.num_players).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

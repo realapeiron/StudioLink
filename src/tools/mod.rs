@@ -8,6 +8,7 @@ pub mod history;
 pub mod instance;
 pub mod linter;
 pub mod memory;
+pub mod multi_client;
 pub mod network;
 pub mod profiler;
 pub mod publish;

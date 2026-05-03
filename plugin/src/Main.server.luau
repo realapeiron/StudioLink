@@ -398,6 +398,9 @@ local UndoRedo = require(script.Parent.Tools.UndoRedo)
 Tools["undo"] = function(args) return UndoRedo.undo(args) end
 Tools["redo"] = function(args) return UndoRedo.redo(args) end
 
+-- Multi-client testing (v0.3.0 / Faz 1)
+Tools["multi_client_test"] = require(script.Parent.Tools.MultiClientTest)
+
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)
 
