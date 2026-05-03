@@ -429,6 +429,7 @@ Tools["ui_click"] = require(script.Parent.Tools.UiClick)
 Tools["ui_set_text"] = require(script.Parent.Tools.UiSetText)
 Tools["ui_get_state"] = require(script.Parent.Tools.UiGetState)
 Tools["input_simulate"] = require(script.Parent.Tools.InputSimulate)
+Tools["viewport_screenshot"] = require(script.Parent.Tools.ViewportScreenshot)
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)

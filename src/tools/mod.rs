@@ -16,6 +16,7 @@ pub mod network;
 pub mod profiler;
 pub mod publish;
 pub mod scenario;
+pub mod screenshot;
 pub mod scripts;
 pub mod security;
 pub mod session;

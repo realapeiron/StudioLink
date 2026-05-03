@@ -383,6 +383,18 @@ pub struct InputSimulateParams {
     pub between_action_delay_ms: Option<u32>,
 }
 
+// --- Viewport Screenshot ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct ViewportScreenshotParams {
+    /// Delete the file after reading. Default: false.
+    pub cleanup: Option<bool>,
+    /// Polling timeout in seconds. Default: 15.
+    pub timeout_secs: Option<u32>,
+    /// Override the screenshot directory (default $HOME/Documents/Roblox/Screenshots on macOS).
+    pub override_dir: Option<String>,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1201,6 +1213,28 @@ impl StudioLinkMcp {
             p.actions,
             p.strategy,
             p.between_action_delay_ms,
+        )
+        .await
+        {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // VIEWPORT SCREENSHOT (Faz 2 / v0.4.0, macOS MVP)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Capture the Studio viewport via StudioService:TakeScreenshot() and return base64 PNG. Server polls $HOME/Documents/Roblox/Screenshots for the new file (macOS default; pass override_dir for other platforms). 20MB cap. Set cleanup=true to delete the file after reading."
+    )]
+    async fn viewport_screenshot(&self, params: Parameters<ViewportScreenshotParams>) -> String {
+        let p = params.0;
+        match tools::screenshot::viewport_screenshot(
+            &self.state,
+            p.cleanup,
+            p.timeout_secs,
+            p.override_dir,
         )
         .await
         {

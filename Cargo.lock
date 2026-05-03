@@ -1649,6 +1649,7 @@ name = "studiolink"
 version = "0.3.0"
 dependencies = [
  "axum",
+ "base64",
  "clap",
  "color-eyre",
  "reqwest",
