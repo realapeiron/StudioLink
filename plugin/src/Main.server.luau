@@ -436,6 +436,7 @@ Tools["viewport_screenshot"] = require(script.Parent.Tools.ViewportScreenshot)
 -- Logs / errors (v0.5.0 / Faz 3)
 Tools["error_history"] = require(script.Parent.Tools.ErrorHistory)
 Tools["crash_dump"] = require(script.Parent.Tools.CrashDump)
+Tools["script_patch"] = require(script.Parent.Tools.ScriptPatch)
 
 -- Serializer for responses
 local Serializer = require(script.Parent.Utils.Serializer)

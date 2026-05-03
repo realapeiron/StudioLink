@@ -413,6 +413,16 @@ pub struct CrashDumpParams {
     pub window_secs: Option<u32>,
 }
 
+// --- Script Patch ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct ScriptPatchParams {
+    /// Dot-separated path to the script (e.g. "ReplicatedStorage.Modules.Player").
+    pub module_path: String,
+    /// New source code to apply.
+    pub new_source: String,
+}
+
 // ═══════════════════════════════════════════════════════
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
@@ -1281,6 +1291,21 @@ impl StudioLinkMcp {
     )]
     async fn crash_dump(&self, params: Parameters<CrashDumpParams>) -> String {
         match tools::logs::crash_dump(&self.state, params.0.window_secs).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // SCRIPT PATCH (Faz 3 / v0.5.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Replace a Script/LocalScript/ModuleScript's source with diff stats and ChangeHistoryService waypoints. NOT live hot-reload: existing required ModuleScripts continue using the old version until next require() / play restart. Optional loadstring syntax check runs only if Studio has it enabled."
+    )]
+    async fn script_patch(&self, params: Parameters<ScriptPatchParams>) -> String {
+        let p = params.0;
+        match tools::script_patch::script_patch(&self.state, p.module_path, p.new_source).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
