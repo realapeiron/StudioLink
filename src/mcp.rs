@@ -454,7 +454,7 @@ pub struct MicroprofilerCaptureParams {
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
 
-/// StudioLink MCP Server handler — registers and dispatches all 64 tools
+/// StudioLink MCP Server handler — registers and dispatches all 65 tools
 #[derive(Clone)]
 pub struct StudioLinkMcp {
     pub state: Arc<Mutex<AppState>>,
@@ -1061,6 +1061,16 @@ impl StudioLinkMcp {
         }
     }
 
+    #[tool(
+        description = "Return the last 50 tool dispatches with their target_session value (multi-chat routing log). target_session=null means the call routed to active_session; a string means it was an explicit per-call session_id override. Mirrors GET http://127.0.0.1:34872/debug/routing."
+    )]
+    async fn debug_routing(&self) -> String {
+        match tools::debug::debug_routing(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
     // ═══════════════════════════════════════════
     // PLACE PUBLISHING
     // ═══════════════════════════════════════════
@@ -1395,7 +1405,7 @@ impl ServerHandler for StudioLinkMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "StudioLink — Advanced Roblox Studio MCP Server with 64 tools for professional game development".into(),
+                "StudioLink — Advanced Roblox Studio MCP Server with 65 tools for professional game development".into(),
             ),
             capabilities: ServerCapabilities::builder()
                 .enable_tools()

@@ -3,6 +3,7 @@ pub mod asset_audit;
 pub mod character;
 pub mod core;
 pub mod datastore;
+pub mod debug;
 pub mod dependencies;
 pub mod diffing;
 pub mod docs;

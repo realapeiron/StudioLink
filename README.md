@@ -1,12 +1,12 @@
 # StudioLink
 
-**Advanced Roblox Studio MCP Server — 64 tools for professional game development with AI**
+**Advanced Roblox Studio MCP Server — 65 tools for professional game development with AI, multi-chat capable**
 
-StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 64 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation, viewport screenshots), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
+StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 65 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation, viewport screenshots), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
-Roblox's official MCP server provides 6 basic tools. StudioLink gives you **64 tools** with features like:
+Roblox's official MCP server provides 6 basic tools. StudioLink gives you **65 tools** with features like:
 
 - Execute code in **Server context during play mode** (not just Edit mode)
 - Multi-instance support — manage multiple Studio windows simultaneously
@@ -148,6 +148,30 @@ Roblox's official MCP server provides 6 basic tools. StudioLink gives you **64 t
 | Tool | Description |
 |------|-------------|
 | `viewport_screenshot` | Capture the Studio viewport via StudioService:TakeScreenshot() and return base64 PNG. macOS path resolution; pass override_dir elsewhere. 20MB cap. |
+
+### Multi-Chat Routing (v0.6.0)
+
+Open multiple unpublished `.rbxlx` places in separate Studio windows. Each registers as its own session. **One Claude/Cursor chat can drive all of them in parallel** by passing `session_id` to a per-call override.
+
+7 tools accept an optional `session_id` parameter that overrides `active_session` for that single call only — without disturbing the global active selection or stepping on parallel chats:
+
+| Tool | Behavior with session_id |
+|------|---|
+| `run_code`, `start_stop_play`, `run_script_in_play_mode` | core ops on a specific session |
+| `character_moveto`, `character_teleport`, `character_action` | drive any open play-mode session's character |
+| `ui_click`, `ui_set_text`, `ui_get_state` | manipulate any session's GUI |
+| `debug_routing` | inspect the last 50 dispatches with their target_session — verify routing |
+
+How it works: target_session travels through the proxy hop in the `PluginRequest` body. The primary StudioLink instance validates the session_id (returns a clear error for unknown ids) and routes via `queue_request_to_session`. Per-call ring buffer at `GET /debug/routing` (or via the `debug_routing` tool) shows the last 50 dispatches for diagnostics.
+
+```
+# Example flow:
+list_sessions()                                          # discover 3 session_ids
+run_code(command="...", session_id=session_a)            # routed to session A
+run_code(command="...", session_id=session_b)            # routed to session B (parallel)
+run_code(command="...")                                  # falls back to active_session
+debug_routing()                                          # inspect the routing log
+```
 
 ### Debugging Deep Dive (4 tools, v0.5.0)
 | Tool | Description |
