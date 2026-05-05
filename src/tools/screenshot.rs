@@ -84,7 +84,13 @@ pub async fn viewport_screenshot(
         .map_err(|e| StudioLinkError::ServerError(format!("screencapture failed: {}", e)))?;
     if !status.success() {
         return Err(StudioLinkError::ServerError(format!(
-            "screencapture exited with status {}",
+            "screencapture exited with {}. macOS Screen Recording permission denied. \
+             If StudioLink runs under Claude Desktop, the parent app's bundle lacks the \
+             screen-recording entitlement, so even toggling the permission has no effect — \
+             this is a Claude Desktop sandbox restriction, not a StudioLink bug. \
+             Workaround: run `claude` directly from Terminal.app (and grant Terminal Screen \
+             Recording permission); plugin-side capture or Studio's File>Take Screenshot \
+             remain alternatives.",
             status
         )));
     }
