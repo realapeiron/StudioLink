@@ -8,10 +8,10 @@ use crate::state::AppState;
 
 /// Tool 48: undo — Undo last action via ChangeHistoryService
 pub async fn undo(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "undo", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "undo", json!({}), DEFAULT_TIMEOUT).await
 }
 
 /// Tool 49: redo — Redo last undone action via ChangeHistoryService
 pub async fn redo(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "redo", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "redo", json!({}), DEFAULT_TIMEOUT).await
 }

@@ -42,10 +42,17 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 /// Extended timeout for long-running operations (120 seconds)
 const EXTENDED_TIMEOUT: Duration = Duration::from_secs(120);
 
-/// Send a tool request to the active session's plugin and wait for the response.
+/// Send a tool request to the plugin and wait for the response.
+///
+/// `target_session` lets a single call route to a specific session_id,
+/// overriding the global active_session. Pass None to use active_session
+/// (default). This is how multiple AI clients can drive different Studio
+/// instances concurrently without stepping on each other via switch_session.
+///
 /// In proxy mode, forwards the request to the primary server via HTTP.
 pub async fn send_to_plugin(
     state: &Arc<Mutex<AppState>>,
+    target_session: Option<&str>,
     tool: &str,
     args: Value,
     timeout: Duration,
@@ -57,6 +64,7 @@ pub async fn send_to_plugin(
     };
 
     if proxy_mode {
+        // Proxy mode currently doesn't carry per-call routing.
         return send_via_proxy(state, &proxy_url, tool, args, timeout).await;
     }
 
@@ -64,31 +72,49 @@ pub async fn send_to_plugin(
     let mut rx = {
         let mut s = state.lock().await;
 
-        // Auto-recover: if active session is stale, clean up and find a live one
-        if !s.is_plugin_connected() {
-            s.cleanup_expired();
-
-            // Try to find any live session and auto-switch to it
-            let live_session = s
-                .sessions
-                .iter()
-                .find(|(_, sess)| sess.last_heartbeat.elapsed().as_secs() < 45)
-                .map(|(id, _)| id.clone());
-
-            if let Some(live_id) = live_session {
-                tracing::info!("Auto-recovered to live session: {}", live_id);
-                s.active_session = Some(live_id);
-            } else {
-                return Err(StudioLinkError::PluginNotConnected);
+        let resolved_session: String = match target_session {
+            Some(sid) => {
+                if !s.sessions.contains_key(sid) {
+                    return Err(StudioLinkError::PluginError(format!(
+                        "session_id '{}' not found. Use list_sessions to see active sessions.",
+                        sid
+                    )));
+                }
+                sid.to_string()
             }
-        }
+            None => {
+                // Auto-recover: if active session is stale, clean up and find a live one
+                if !s.is_plugin_connected() {
+                    s.cleanup_expired();
+                    let live_session = s
+                        .sessions
+                        .iter()
+                        .find(|(_, sess)| sess.last_heartbeat.elapsed().as_secs() < 45)
+                        .map(|(id, _)| id.clone());
 
-        match s.queue_request(tool, args) {
+                    if let Some(live_id) = live_session {
+                        tracing::info!("Auto-recovered to live session: {}", live_id);
+                        s.active_session = Some(live_id);
+                    } else {
+                        return Err(StudioLinkError::PluginNotConnected);
+                    }
+                }
+                s.active_session.clone().ok_or_else(|| {
+                    StudioLinkError::PluginError(
+                        "No active session. Use list_sessions and switch_session to connect."
+                            .into(),
+                    )
+                })?
+            }
+        };
+
+        match s.queue_request_to_session(&resolved_session, tool, args) {
             Some((_id, rx)) => rx,
             None => {
-                return Err(StudioLinkError::PluginError(
-                    "No active session. Use list_sessions and switch_session to connect.".into(),
-                ))
+                return Err(StudioLinkError::PluginError(format!(
+                    "Failed to queue request for session {}",
+                    resolved_session
+                )))
             }
         }
     };

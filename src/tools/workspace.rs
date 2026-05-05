@@ -14,6 +14,7 @@ pub async fn workspace_analyze(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "workspace_analyze",
         json!({ "path": path.unwrap_or("") }),
         EXTENDED_TIMEOUT,

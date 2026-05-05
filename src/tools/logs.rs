@@ -27,6 +27,7 @@ pub async fn error_history(
     }
     send_to_plugin(
         state,
+        None,
         "error_history",
         json!({
             "message_type": message_type,
@@ -57,6 +58,7 @@ pub async fn crash_dump(
     }
     send_to_plugin(
         state,
+        None,
         "crash_dump",
         json!({ "window_secs": window_secs.unwrap_or(30) }),
         DEFAULT_TIMEOUT,

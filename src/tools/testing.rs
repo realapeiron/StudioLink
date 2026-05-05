@@ -13,6 +13,7 @@ pub async fn test_run(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "test_run",
         json!({ "path": path.unwrap_or("") }),
         EXTENDED_TIMEOUT,
@@ -27,6 +28,7 @@ pub async fn test_create(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "test_create",
         json!({ "targetPath": target_path }),
         DEFAULT_TIMEOUT,
@@ -36,5 +38,5 @@ pub async fn test_create(
 
 /// Tool 20: test_report — Get detailed test results report
 pub async fn test_report(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "test_report", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "test_report", json!({}), DEFAULT_TIMEOUT).await
 }

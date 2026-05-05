@@ -14,6 +14,7 @@ pub async fn lint_scripts(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "lint_scripts",
         json!({ "path": path.unwrap_or("") }),
         EXTENDED_TIMEOUT,

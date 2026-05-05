@@ -29,6 +29,7 @@ pub async fn multi_client_test(
     }
     send_to_plugin(
         state,
+        None,
         "multi_client_test",
         json!({ "numPlayers": n }),
         DEFAULT_TIMEOUT,

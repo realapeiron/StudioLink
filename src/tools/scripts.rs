@@ -13,6 +13,7 @@ pub async fn get_script_source(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "get_script_source",
         json!({ "path": path }),
         DEFAULT_TIMEOUT,
@@ -28,6 +29,7 @@ pub async fn set_script_source(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "set_script_source",
         json!({ "path": path, "source": source }),
         DEFAULT_TIMEOUT,
@@ -43,6 +45,7 @@ pub async fn grep_scripts(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "grep_scripts",
         json!({ "pattern": pattern, "caseSensitive": case_sensitive.unwrap_or(true) }),
         EXTENDED_TIMEOUT,
@@ -58,6 +61,7 @@ pub async fn search_objects(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "search_objects",
         json!({ "query": query, "searchBy": search_by.unwrap_or("name") }),
         EXTENDED_TIMEOUT,

@@ -14,6 +14,7 @@ pub async fn docs_generate(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "docs_generate",
         json!({ "path": path.unwrap_or("") }),
         EXTENDED_TIMEOUT,

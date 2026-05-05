@@ -8,7 +8,7 @@ use crate::state::AppState;
 
 /// Tool 26: animation_list — List all animations with ID, duration, priority
 pub async fn animation_list(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "animation_list", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "animation_list", json!({}), DEFAULT_TIMEOUT).await
 }
 
 /// Tool 27: animation_inspect — Get keyframe details of a specific animation
@@ -18,6 +18,7 @@ pub async fn animation_inspect(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "animation_inspect",
         json!({ "animationId": animation_id }),
         DEFAULT_TIMEOUT,
@@ -27,5 +28,12 @@ pub async fn animation_inspect(
 
 /// Tool 28: animation_conflicts — Detect conflicting animations
 pub async fn animation_conflicts(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "animation_conflicts", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(
+        state,
+        None,
+        "animation_conflicts",
+        json!({}),
+        EXTENDED_TIMEOUT,
+    )
+    .await
 }

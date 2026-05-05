@@ -13,6 +13,7 @@ pub async fn snapshot_take(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "snapshot_take",
         json!({ "name": name.unwrap_or("auto") }),
         EXTENDED_TIMEOUT,
@@ -28,6 +29,7 @@ pub async fn snapshot_compare(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "snapshot_compare",
         json!({ "snapshotA": snapshot_a, "snapshotB": snapshot_b }),
         EXTENDED_TIMEOUT,
@@ -37,5 +39,5 @@ pub async fn snapshot_compare(
 
 /// Tool 17: snapshot_list — List all saved snapshots
 pub async fn snapshot_list(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "snapshot_list", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "snapshot_list", json!({}), EXTENDED_TIMEOUT).await
 }

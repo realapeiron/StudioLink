@@ -28,6 +28,7 @@ pub async fn script_patch(
     }
     send_to_plugin(
         state,
+        None,
         "script_patch",
         json!({
             "module_path": module_path,

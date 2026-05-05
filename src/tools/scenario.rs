@@ -29,6 +29,7 @@ pub async fn wait_for_condition(
     }
     send_to_plugin(
         state,
+        None,
         "wait_for_condition",
         json!({
             "instance_path": instance_path,
@@ -55,6 +56,7 @@ pub async fn wait_for_event(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "wait_for_event",
         json!({
             "instance_path": instance_path,

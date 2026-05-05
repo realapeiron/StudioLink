@@ -23,6 +23,7 @@ pub async fn microprofiler_capture(
     }
     send_to_plugin(
         state,
+        None,
         "microprofiler_capture",
         json!({
             "code": code,

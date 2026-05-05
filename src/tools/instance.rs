@@ -14,6 +14,7 @@ pub async fn get_file_tree(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "get_file_tree",
         json!({ "path": path.unwrap_or(""), "depth": depth.unwrap_or(10) }),
         DEFAULT_TIMEOUT,
@@ -28,6 +29,7 @@ pub async fn get_instance_properties(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "get_instance_properties",
         json!({ "path": path }),
         DEFAULT_TIMEOUT,
@@ -45,6 +47,7 @@ pub async fn set_property(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "set_property",
         json!({
             "path": path,
@@ -67,6 +70,7 @@ pub async fn mass_set_property(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "mass_set_property",
         json!({
             "paths": paths,
@@ -88,6 +92,7 @@ pub async fn create_instance(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "create_instance",
         json!({
             "className": class_name,
@@ -106,6 +111,7 @@ pub async fn delete_instance(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "delete_instance",
         json!({ "path": path }),
         DEFAULT_TIMEOUT,

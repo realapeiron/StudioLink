@@ -8,10 +8,24 @@ use crate::state::AppState;
 
 /// Tool 29: network_monitor_start — Start monitoring RemoteEvent/Function traffic
 pub async fn network_monitor_start(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "network_monitor_start", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(
+        state,
+        None,
+        "network_monitor_start",
+        json!({}),
+        DEFAULT_TIMEOUT,
+    )
+    .await
 }
 
 /// Tool 30: network_monitor_stop — Stop monitoring and return traffic report
 pub async fn network_monitor_stop(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "network_monitor_stop", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(
+        state,
+        None,
+        "network_monitor_stop",
+        json!({}),
+        EXTENDED_TIMEOUT,
+    )
+    .await
 }

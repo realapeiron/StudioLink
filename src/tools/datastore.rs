@@ -8,7 +8,7 @@ use crate::state::AppState;
 
 /// Tool 7: datastore_list — List all DataStore names in the experience
 pub async fn datastore_list(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "datastore_list", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "datastore_list", json!({}), DEFAULT_TIMEOUT).await
 }
 
 /// Tool 8: datastore_get — Read a specific key from a DataStore
@@ -19,6 +19,7 @@ pub async fn datastore_get(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "datastore_get",
         json!({ "storeName": store_name, "key": key }),
         DEFAULT_TIMEOUT,
@@ -35,6 +36,7 @@ pub async fn datastore_set(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "datastore_set",
         json!({ "storeName": store_name, "key": key, "value": value }),
         DEFAULT_TIMEOUT,
@@ -50,6 +52,7 @@ pub async fn datastore_delete(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "datastore_delete",
         json!({ "storeName": store_name, "key": key }),
         DEFAULT_TIMEOUT,
@@ -66,6 +69,7 @@ pub async fn datastore_scan(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "datastore_scan",
         json!({
             "storeName": store_name,

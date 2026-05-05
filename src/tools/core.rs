@@ -6,10 +6,18 @@ use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
 use crate::error::Result;
 use crate::state::AppState;
 
-/// Tool 1: run_code — Execute Luau code in Studio and return output
-pub async fn run_code(state: &Arc<Mutex<AppState>>, code: &str) -> Result<serde_json::Value> {
+/// Tool 1: run_code — Execute Luau code in Studio and return output.
+///
+/// session_id (Some) routes this single call to a specific session, overriding
+/// active_session for this call only.
+pub async fn run_code(
+    state: &Arc<Mutex<AppState>>,
+    session_id: Option<&str>,
+    code: &str,
+) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        session_id,
         "run_code",
         json!({ "command": code }),
         DEFAULT_TIMEOUT,
@@ -21,6 +29,7 @@ pub async fn run_code(state: &Arc<Mutex<AppState>>, code: &str) -> Result<serde_
 pub async fn insert_model(state: &Arc<Mutex<AppState>>, query: &str) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "insert_model",
         json!({ "query": query }),
         DEFAULT_TIMEOUT,
@@ -30,7 +39,14 @@ pub async fn insert_model(state: &Arc<Mutex<AppState>>, query: &str) -> Result<s
 
 /// Tool 3: get_console_output — Get Studio console output
 pub async fn get_console_output(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "get_console_output", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(
+        state,
+        None,
+        "get_console_output",
+        json!({}),
+        DEFAULT_TIMEOUT,
+    )
+    .await
 }
 
 /// Tool 4: start_stop_play — Control play/stop/run_server mode
@@ -40,6 +56,7 @@ pub async fn start_stop_play(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "start_stop_play",
         json!({ "mode": mode }),
         DEFAULT_TIMEOUT,
@@ -56,6 +73,7 @@ pub async fn run_script_in_play_mode(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "run_script_in_play_mode",
         json!({
             "code": code,
@@ -69,5 +87,5 @@ pub async fn run_script_in_play_mode(
 
 /// Tool 6: get_studio_mode — Get current Studio mode
 pub async fn get_studio_mode(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "get_studio_mode", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "get_studio_mode", json!({}), DEFAULT_TIMEOUT).await
 }

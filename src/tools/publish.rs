@@ -47,6 +47,7 @@ pub async fn publish_place(
     }
     send_to_plugin(
         state,
+        None,
         "publish_place",
         json!({ "versionType": vt }),
         DEFAULT_TIMEOUT,

@@ -17,7 +17,7 @@ use crate::state::AppState;
 /// Use count + total_seconds as proxies. EXTENDED_TIMEOUT (120s) is used
 /// because GetDescendants on large places can be slow.
 pub async fn asset_audit(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "asset_audit", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "asset_audit", json!({}), EXTENDED_TIMEOUT).await
 }
 
 #[cfg(test)]

@@ -8,10 +8,10 @@ use crate::state::AppState;
 
 /// Tool 31: ui_tree — Get the full GUI hierarchy
 pub async fn ui_tree(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "ui_tree", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(state, None, "ui_tree", json!({}), DEFAULT_TIMEOUT).await
 }
 
 /// Tool 32: ui_analyze — Detect UI issues (overlaps, off-screen, mobile compat, ZIndex)
 pub async fn ui_analyze(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "ui_analyze", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "ui_analyze", json!({}), EXTENDED_TIMEOUT).await
 }

@@ -13,6 +13,7 @@ pub async fn profile_start(
 ) -> Result<serde_json::Value> {
     send_to_plugin(
         state,
+        None,
         "profile_start",
         json!({ "frequency": frequency.unwrap_or(1000) }),
         DEFAULT_TIMEOUT,
@@ -22,10 +23,10 @@ pub async fn profile_start(
 
 /// Tool 13: profile_stop — Stop profiling and return raw results
 pub async fn profile_stop(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "profile_stop", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "profile_stop", json!({}), EXTENDED_TIMEOUT).await
 }
 
 /// Tool 14: profile_analyze — Analyze profiling data with optimization suggestions
 pub async fn profile_analyze(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "profile_analyze", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "profile_analyze", json!({}), EXTENDED_TIMEOUT).await
 }

@@ -13,7 +13,14 @@ const VALID_STRATEGIES: &[&str] = &["vim", "injection", "auto"];
 /// on `_G.StudioLink_VimReport` so `input_simulate` can pick the right
 /// strategy.
 pub async fn vim_capability_test(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "vim_capability_test", json!({}), DEFAULT_TIMEOUT).await
+    send_to_plugin(
+        state,
+        None,
+        "vim_capability_test",
+        json!({}),
+        DEFAULT_TIMEOUT,
+    )
+    .await
 }
 
 /// input_simulate — Drive Studio's keyboard/mouse via VirtualInputManager.
@@ -43,6 +50,7 @@ pub async fn input_simulate(
     }
     send_to_plugin(
         state,
+        None,
         "input_simulate",
         json!({
             "actions": actions,

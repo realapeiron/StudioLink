@@ -9,10 +9,10 @@ use crate::state::AppState;
 /// Tool 21: security_scan — Scan the entire place for security vulnerabilities
 /// Checks: RemoteEvent validation, client trust issues, exposed data, rate limiting
 pub async fn security_scan(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "security_scan", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "security_scan", json!({}), EXTENDED_TIMEOUT).await
 }
 
 /// Tool 22: security_report — Get a formatted security report with risk levels
 pub async fn security_report(state: &Arc<Mutex<AppState>>) -> Result<serde_json::Value> {
-    send_to_plugin(state, "security_report", json!({}), EXTENDED_TIMEOUT).await
+    send_to_plugin(state, None, "security_report", json!({}), EXTENDED_TIMEOUT).await
 }
