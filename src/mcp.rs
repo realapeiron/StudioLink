@@ -260,6 +260,12 @@ pub struct SwitchSessionParams {
     pub session_id: String,
 }
 
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SetMySessionParams {
+    /// Session ID to bind to this MCP instance. Pass null to clear and fall back to active_session.
+    pub session_id: Option<String>,
+}
+
 // --- Place Publishing ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -454,7 +460,7 @@ pub struct MicroprofilerCaptureParams {
 // MCP SERVER HANDLER
 // ═══════════════════════════════════════════════════════
 
-/// StudioLink MCP Server handler — registers and dispatches all 65 tools
+/// StudioLink MCP Server handler — registers and dispatches all 67 tools
 #[derive(Clone)]
 pub struct StudioLinkMcp {
     pub state: Arc<Mutex<AppState>>,
@@ -1071,6 +1077,26 @@ impl StudioLinkMcp {
         }
     }
 
+    #[tool(
+        description = "Bind this Claude/Cursor chat to a specific Studio session for the rest of the conversation. After calling set_my_session(session_id), every subsequent tool call WITHOUT an explicit session_id will automatically route to the bound session — no more passing session_id on every call. Pass null/none to clear and fall back to active_session. RECOMMENDED FLOW: list_sessions → ask user (or infer) which place this chat owns → set_my_session(<that_id>) once → forget about session_id for the rest."
+    )]
+    async fn set_my_session(&self, params: Parameters<SetMySessionParams>) -> String {
+        match tools::affinity::set_my_session(&self.state, params.0.session_id).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Read the bound_session_id for this MCP instance (set via set_my_session) along with the global active_session. Returns null when nothing is bound."
+    )]
+    async fn get_my_session(&self) -> String {
+        match tools::affinity::get_my_session(&self.state).await {
+            Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
     // ═══════════════════════════════════════════
     // PLACE PUBLISHING
     // ═══════════════════════════════════════════
@@ -1405,39 +1431,42 @@ impl ServerHandler for StudioLinkMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "StudioLink — Advanced Roblox Studio MCP Server with 65 tools for professional Roblox game development.\n\
+                "StudioLink — Advanced Roblox Studio MCP Server with 67 tools for professional Roblox game development.\n\
                 \n\
                 ═══════════════════════════════════════════════════════════════════\n\
-                MULTI-SESSION / MULTI-CHAT WORKFLOW (IMPORTANT)\n\
+                MULTI-SESSION / MULTI-CHAT WORKFLOW (READ THIS FIRST)\n\
                 ═══════════════════════════════════════════════════════════════════\n\
                 \n\
                 A user may have several Roblox Studio windows open at once — each\n\
                 registers as a separate session. Several Claude/Cursor chats may\n\
                 also be talking to this same StudioLink server simultaneously.\n\
                 \n\
-                AT THE START OF EVERY TASK that touches Studio, follow this flow:\n\
+                RECOMMENDED FLOW (uses session affinity, no per-call boilerplate):\n\
                   1. Call list_sessions FIRST to see how many sessions exist.\n\
-                  2. If count > 1, ASK THE USER which place this chat should\n\
-                     work on (or infer from context: 'main game', 'test place', etc.).\n\
-                  3. Remember the chosen session_id for the rest of the conversation.\n\
-                  4. PASS session_id ON EVERY supported tool call (run_code,\n\
-                     start_stop_play, run_script_in_play_mode, character_moveto,\n\
-                     character_teleport, character_action, ui_click, ui_set_text,\n\
-                     ui_get_state). Do not rely on active_session — another chat\n\
-                     may switch it out from under you.\n\
+                  2. If count == 1, you can skip the rest — that one is yours.\n\
+                  3. If count > 1, ASK THE USER which place this chat owns\n\
+                     (or infer from context: 'main game', 'test place', etc.).\n\
+                  4. Call set_my_session(session_id=<chosen>) ONCE. This binds\n\
+                     this MCP instance to that session for the rest of the\n\
+                     conversation. The server remembers it; you don't need to\n\
+                     pass session_id on subsequent tool calls.\n\
+                  5. Just use tools normally afterward — every call routes to\n\
+                     the bound session automatically.\n\
                 \n\
-                Tools that DO NOT need session_id (yet): everything else falls\n\
-                back to active_session by default; that is fine for read-only\n\
-                tools like list_sessions, get_active_session, debug_routing.\n\
+                Routing precedence on every tool call:\n\
+                    explicit session_id param > bound_session_id > active_session\n\
                 \n\
-                Verify routing anytime with the debug_routing tool — it returns\n\
-                the last 50 dispatches with their target_session value, so you\n\
-                can confirm your calls are landing on the right place.\n\
+                You can still pass session_id explicitly when you need to\n\
+                temporarily target a different place for one call without\n\
+                changing the binding.\n\
                 \n\
-                Unknown session_id values return a clear error like\n\
-                \"session_id 'X' not found on primary StudioLink. Use\n\
-                list_sessions to see active sessions.\" — recover by\n\
-                re-calling list_sessions and picking a current id.\n\
+                Verify what is bound: call get_my_session.\n\
+                Verify what landed where: call debug_routing (last 50 calls).\n\
+                Unbind: call set_my_session(session_id=null) or set_my_session()\n\
+                with no argument to fall back to active_session.\n\
+                \n\
+                Each Claude/Cursor chat has its own studiolink process with its\n\
+                own bound_session_id, so chats do not clobber each other.\n\
                 ═══════════════════════════════════════════════════════════════════"
                     .into(),
             ),

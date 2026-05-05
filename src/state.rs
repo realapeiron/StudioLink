@@ -90,6 +90,12 @@ pub struct AppState {
     /// Last 50 tool dispatches with their target_session value — for v0.6
     /// session_id routing diagnostics, exposed via GET /debug/routing.
     pub routing_log: VecDeque<RoutingObservation>,
+    /// v0.7 session affinity: when an AI client calls set_my_session, this is
+    /// remembered and every subsequent tool call without an explicit
+    /// session_id falls back to it instead of active_session. Each studiolink
+    /// instance has its own bound_session_id, so multi-chat is isolated by
+    /// process boundary.
+    pub bound_session_id: Option<String>,
 }
 
 impl AppState {
@@ -104,6 +110,7 @@ impl AppState {
             proxy_url: String::new(),
             proxy_client: None,
             routing_log: VecDeque::new(),
+            bound_session_id: None,
         };
         (Arc::new(Mutex::new(state)), global_notify_rx)
     }
@@ -372,6 +379,7 @@ mod tests {
             proxy_url: String::new(),
             proxy_client: None,
             routing_log: VecDeque::new(),
+            bound_session_id: None,
         }
     }
 

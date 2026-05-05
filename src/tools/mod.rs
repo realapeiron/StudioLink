@@ -1,3 +1,4 @@
+pub mod affinity;
 pub mod animation;
 pub mod asset_audit;
 pub mod character;
@@ -64,9 +65,17 @@ pub async fn send_to_plugin(
         (s.proxy_mode, s.proxy_url.clone())
     };
 
+    // v0.7 session affinity: if no explicit target_session, fall back to the
+    // bound_session_id set by set_my_session. Direct param > bound > active.
+    let bound = {
+        let s = state.lock().await;
+        s.bound_session_id.clone()
+    };
+    let target_session: Option<&str> = target_session.or(bound.as_deref());
+
     {
         // v0.6 routing diagnostic: log every dispatch (direct OR proxy) with
-        // its target_session, before mode-specific paths.
+        // its target_session (after affinity resolution).
         let mut s = state.lock().await;
         s.log_routing(tool, target_session);
     }
