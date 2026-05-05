@@ -166,13 +166,26 @@ async fn handle_proxy_tool_call(
     let mut rx = {
         let mut s = state.lock().await;
 
-        // Check if there's an active session
-        if s.active_session.is_none() {
-            return Err(StatusCode::SERVICE_UNAVAILABLE);
-        }
+        // Log routing on the primary side too so /debug/routing shows the
+        // proxy-forwarded target_session.
+        s.log_routing(&request.tool, request.target_session.as_deref());
 
-        // Queue the request for the active session using tool name and args
-        match s.queue_request(&request.tool, request.args) {
+        // Resolve target session: explicit target_session from proxy body
+        // wins over active_session.
+        let resolved: String = match request.target_session.as_deref() {
+            Some(sid) => {
+                if !s.sessions.contains_key(sid) {
+                    return Err(StatusCode::NOT_FOUND);
+                }
+                sid.to_string()
+            }
+            None => match s.active_session.clone() {
+                Some(a) => a,
+                None => return Err(StatusCode::SERVICE_UNAVAILABLE),
+            },
+        };
+
+        match s.queue_request_to_session(&resolved, &request.tool, request.args) {
             Some((_id, rx)) => rx,
             None => return Err(StatusCode::SERVICE_UNAVAILABLE),
         }

@@ -63,17 +63,20 @@ pub async fn send_to_plugin(
         (s.proxy_mode, s.proxy_url.clone())
     };
 
+    {
+        // v0.6 routing diagnostic: log every dispatch (direct OR proxy) with
+        // its target_session, before mode-specific paths.
+        let mut s = state.lock().await;
+        s.log_routing(tool, target_session);
+    }
+
     if proxy_mode {
-        // Proxy mode currently doesn't carry per-call routing.
-        return send_via_proxy(state, &proxy_url, tool, args, timeout).await;
+        return send_via_proxy(state, &proxy_url, target_session, tool, args, timeout).await;
     }
 
     // Direct mode: queue request locally
     let mut rx = {
         let mut s = state.lock().await;
-
-        // v0.6 routing diagnostic: log every dispatch with its target_session
-        s.log_routing(tool, target_session);
 
         let resolved_session: String = match target_session {
             Some(sid) => {
@@ -142,10 +145,13 @@ pub async fn send_to_plugin(
     }
 }
 
-/// Forward a tool request to the primary server via HTTP (proxy mode)
+/// Forward a tool request to the primary server via HTTP (proxy mode).
+/// Carries `target_session` in the body so the primary can route this single
+/// call to a specific session instead of falling back to its own active.
 async fn send_via_proxy(
     state: &Arc<Mutex<AppState>>,
     proxy_url: &str,
+    target_session: Option<&str>,
     tool: &str,
     args: Value,
     timeout: Duration,
@@ -154,6 +160,7 @@ async fn send_via_proxy(
         id: uuid::Uuid::new_v4().to_string(),
         tool: tool.to_string(),
         args,
+        target_session: target_session.map(|s| s.to_string()),
     };
 
     // Reuse the proxy client from state (avoids recreating per request for connection pooling)

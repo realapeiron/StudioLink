@@ -10,6 +10,12 @@ pub struct PluginRequest {
     pub id: String,
     pub tool: String,
     pub args: serde_json::Value,
+    /// Per-call routing: when a secondary studiolink instance proxies a tool
+    /// call to the primary, this carries the caller's session_id so the
+    /// primary doesn't fall back to its own active_session. None = use
+    /// primary's active_session.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_session: Option<String>,
 }
 
 /// A response from the Studio plugin
@@ -237,7 +243,10 @@ impl AppState {
     // REQUEST/RESPONSE (session-aware)
     // ═══════════════════════════════════════════
 
-    /// Queue a request to the active session and return a receiver for the response
+    /// Queue a request to the active session and return a receiver for the response.
+    /// Kept for legacy callers (e.g. handle_proxy_tool_call before v0.6 routing); current
+    /// code paths use queue_request_to_session with explicit resolution.
+    #[allow(dead_code)]
     pub fn queue_request(
         &mut self,
         tool: &str,
@@ -261,6 +270,7 @@ impl AppState {
             id: id.clone(),
             tool: tool.to_string(),
             args,
+            target_session: None,
         };
 
         let (tx, rx) = mpsc::unbounded_channel();
