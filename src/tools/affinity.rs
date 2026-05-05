@@ -19,7 +19,12 @@ pub async fn set_my_session(
     let mut s = state.lock().await;
     match session_id {
         Some(sid) => {
-            if !s.sessions.contains_key(&sid) {
+            // Validate against the live sessions map ONLY in direct mode. In
+            // proxy mode the session list lives on the primary; we'd need a
+            // round-trip to verify. Trust the caller — if the id is wrong the
+            // first real tool call will surface "session_id 'X' not found on
+            // primary StudioLink." via the proxy 404 path.
+            if !s.proxy_mode && !s.sessions.contains_key(&sid) {
                 return Err(StudioLinkError::InvalidArguments(format!(
                     "session_id '{}' not found. Use list_sessions to see active sessions.",
                     sid
