@@ -294,7 +294,7 @@ pub struct CharacterMovetoParams {
     pub wait_finished: Option<bool>,
     /// Timeout in seconds when wait_finished=true. Default: 8.
     pub timeout_secs: Option<u32>,
-    /// Optional: route this call to a specific session_id.
+    /// Route this call to a specific session_id (multi-chat / multi-place safe). Get ids from list_sessions. When multiple sessions exist ALWAYS pass this — relying on active_session is racy across chats.
     pub session_id: Option<String>,
 }
 
@@ -306,7 +306,7 @@ pub struct CharacterTeleportParams {
     pub player: Option<String>,
     /// Anchor HumanoidRootPart for one frame to avoid physics blowups. Default: false.
     pub anchor_during: Option<bool>,
-    /// Optional: route this call to a specific session_id.
+    /// Route this call to a specific session_id (multi-chat / multi-place safe). Get ids from list_sessions. When multiple sessions exist ALWAYS pass this — relying on active_session is racy across chats.
     pub session_id: Option<String>,
 }
 
@@ -318,7 +318,7 @@ pub struct CharacterActionParams {
     pub value: Option<f64>,
     /// Player username or "@first" (default).
     pub player: Option<String>,
-    /// Optional: route this call to a specific session_id.
+    /// Route this call to a specific session_id (multi-chat / multi-place safe). Get ids from list_sessions. When multiple sessions exist ALWAYS pass this — relying on active_session is racy across chats.
     pub session_id: Option<String>,
 }
 
@@ -360,7 +360,7 @@ pub struct UiClickParams {
     pub selector: Value,
     /// Player username or "@first" (default).
     pub player: Option<String>,
-    /// Optional: route this call to a specific session_id.
+    /// Route this call to a specific session_id (multi-chat / multi-place safe). Get ids from list_sessions. When multiple sessions exist ALWAYS pass this — relying on active_session is racy across chats.
     pub session_id: Option<String>,
 }
 
@@ -372,7 +372,7 @@ pub struct UiSetTextParams {
     pub text: String,
     /// Player username or "@first" (default).
     pub player: Option<String>,
-    /// Optional: route this call to a specific session_id.
+    /// Route this call to a specific session_id (multi-chat / multi-place safe). Get ids from list_sessions. When multiple sessions exist ALWAYS pass this — relying on active_session is racy across chats.
     pub session_id: Option<String>,
 }
 
@@ -384,7 +384,7 @@ pub struct UiGetStateParams {
     pub properties: Option<Vec<String>>,
     /// Player username or "@first" (default).
     pub player: Option<String>,
-    /// Optional: route this call to a specific session_id.
+    /// Route this call to a specific session_id (multi-chat / multi-place safe). Get ids from list_sessions. When multiple sessions exist ALWAYS pass this — relying on active_session is racy across chats.
     pub session_id: Option<String>,
 }
 
@@ -1032,7 +1032,7 @@ impl StudioLinkMcp {
     // ═══════════════════════════════════════════
 
     #[tool(
-        description = "List all connected Roblox Studio sessions. Each open Studio instance registers as a separate session with its PlaceId and name."
+        description = "List all connected Roblox Studio sessions. CALL THIS FIRST in every conversation that touches Studio. Each open Studio window is a separate session with its own session_id. If more than one session exists, pick the one this chat should drive and pass session_id on every subsequent tool call (run_code, character_*, ui_*, start_stop_play, etc.) — do not rely on active_session in multi-chat / multi-place setups."
     )]
     async fn list_sessions(&self) -> String {
         match tools::session::list_sessions(&self.state).await {
@@ -1405,11 +1405,43 @@ impl ServerHandler for StudioLinkMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             instructions: Some(
-                "StudioLink — Advanced Roblox Studio MCP Server with 65 tools for professional game development".into(),
+                "StudioLink — Advanced Roblox Studio MCP Server with 65 tools for professional Roblox game development.\n\
+                \n\
+                ═══════════════════════════════════════════════════════════════════\n\
+                MULTI-SESSION / MULTI-CHAT WORKFLOW (IMPORTANT)\n\
+                ═══════════════════════════════════════════════════════════════════\n\
+                \n\
+                A user may have several Roblox Studio windows open at once — each\n\
+                registers as a separate session. Several Claude/Cursor chats may\n\
+                also be talking to this same StudioLink server simultaneously.\n\
+                \n\
+                AT THE START OF EVERY TASK that touches Studio, follow this flow:\n\
+                  1. Call list_sessions FIRST to see how many sessions exist.\n\
+                  2. If count > 1, ASK THE USER which place this chat should\n\
+                     work on (or infer from context: 'main game', 'test place', etc.).\n\
+                  3. Remember the chosen session_id for the rest of the conversation.\n\
+                  4. PASS session_id ON EVERY supported tool call (run_code,\n\
+                     start_stop_play, run_script_in_play_mode, character_moveto,\n\
+                     character_teleport, character_action, ui_click, ui_set_text,\n\
+                     ui_get_state). Do not rely on active_session — another chat\n\
+                     may switch it out from under you.\n\
+                \n\
+                Tools that DO NOT need session_id (yet): everything else falls\n\
+                back to active_session by default; that is fine for read-only\n\
+                tools like list_sessions, get_active_session, debug_routing.\n\
+                \n\
+                Verify routing anytime with the debug_routing tool — it returns\n\
+                the last 50 dispatches with their target_session value, so you\n\
+                can confirm your calls are landing on the right place.\n\
+                \n\
+                Unknown session_id values return a clear error like\n\
+                \"session_id 'X' not found on primary StudioLink. Use\n\
+                list_sessions to see active sessions.\" — recover by\n\
+                re-calling list_sessions and picking a current id.\n\
+                ═══════════════════════════════════════════════════════════════════"
+                    .into(),
             ),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
+            capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation {
                 name: "StudioLink".into(),
                 version: env!("CARGO_PKG_VERSION").into(),
