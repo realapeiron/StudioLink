@@ -189,6 +189,13 @@ async fn send_via_proxy(
         return Err(StudioLinkError::RequestTimeout(tool.into()));
     }
 
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err(StudioLinkError::PluginError(format!(
+            "session_id '{}' not found on primary StudioLink. Use list_sessions to see active sessions.",
+            target_session.unwrap_or("?")
+        )));
+    }
+
     let plugin_response: crate::state::PluginResponse = response
         .json()
         .await

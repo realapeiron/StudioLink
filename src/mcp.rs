@@ -294,6 +294,8 @@ pub struct CharacterMovetoParams {
     pub wait_finished: Option<bool>,
     /// Timeout in seconds when wait_finished=true. Default: 8.
     pub timeout_secs: Option<u32>,
+    /// Optional: route this call to a specific session_id.
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -304,6 +306,8 @@ pub struct CharacterTeleportParams {
     pub player: Option<String>,
     /// Anchor HumanoidRootPart for one frame to avoid physics blowups. Default: false.
     pub anchor_during: Option<bool>,
+    /// Optional: route this call to a specific session_id.
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -314,6 +318,8 @@ pub struct CharacterActionParams {
     pub value: Option<f64>,
     /// Player username or "@first" (default).
     pub player: Option<String>,
+    /// Optional: route this call to a specific session_id.
+    pub session_id: Option<String>,
 }
 
 // --- Test Scenario Primitives ---
@@ -354,6 +360,8 @@ pub struct UiClickParams {
     pub selector: Value,
     /// Player username or "@first" (default).
     pub player: Option<String>,
+    /// Optional: route this call to a specific session_id.
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -364,6 +372,8 @@ pub struct UiSetTextParams {
     pub text: String,
     /// Player username or "@first" (default).
     pub player: Option<String>,
+    /// Optional: route this call to a specific session_id.
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -374,6 +384,8 @@ pub struct UiGetStateParams {
     pub properties: Option<Vec<String>>,
     /// Player username or "@first" (default).
     pub player: Option<String>,
+    /// Optional: route this call to a specific session_id.
+    pub session_id: Option<String>,
 }
 
 // --- Input Simulation ---
@@ -1126,7 +1138,7 @@ impl StudioLinkMcp {
         let p = params.0;
         match tools::character::character_moveto(
             &self.state,
-            None,
+            p.session_id.as_deref(),
             p.target,
             p.player,
             p.wait_finished,
@@ -1146,7 +1158,7 @@ impl StudioLinkMcp {
         let p = params.0;
         match tools::character::character_teleport(
             &self.state,
-            None,
+            p.session_id.as_deref(),
             p.target,
             p.player,
             p.anchor_during,
@@ -1163,8 +1175,14 @@ impl StudioLinkMcp {
     )]
     async fn character_action(&self, params: Parameters<CharacterActionParams>) -> String {
         let p = params.0;
-        match tools::character::character_action(&self.state, None, p.action, p.value, p.player)
-            .await
+        match tools::character::character_action(
+            &self.state,
+            p.session_id.as_deref(),
+            p.action,
+            p.value,
+            p.player,
+        )
+        .await
         {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
@@ -1224,7 +1242,8 @@ impl StudioLinkMcp {
     )]
     async fn ui_click(&self, params: Parameters<UiClickParams>) -> String {
         let p = params.0;
-        match tools::ui::ui_click(&self.state, None, p.selector, p.player).await {
+        match tools::ui::ui_click(&self.state, p.session_id.as_deref(), p.selector, p.player).await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
@@ -1235,7 +1254,15 @@ impl StudioLinkMcp {
     )]
     async fn ui_set_text(&self, params: Parameters<UiSetTextParams>) -> String {
         let p = params.0;
-        match tools::ui::ui_set_text(&self.state, None, p.selector, p.text, p.player).await {
+        match tools::ui::ui_set_text(
+            &self.state,
+            p.session_id.as_deref(),
+            p.selector,
+            p.text,
+            p.player,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
@@ -1246,7 +1273,15 @@ impl StudioLinkMcp {
     )]
     async fn ui_get_state(&self, params: Parameters<UiGetStateParams>) -> String {
         let p = params.0;
-        match tools::ui::ui_get_state(&self.state, None, p.selector, p.properties, p.player).await {
+        match tools::ui::ui_get_state(
+            &self.state,
+            p.session_id.as_deref(),
+            p.selector,
+            p.properties,
+            p.player,
+        )
+        .await
+        {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }
