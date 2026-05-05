@@ -21,6 +21,11 @@ use crate::tools;
 pub struct RunCodeParams {
     /// Luau code to execute in Roblox Studio
     pub command: String,
+    /// (v0.6 EXPERIMENTAL) Optional session_id to route this single call to a
+    /// specific Studio session, overriding active_session. Pass-through is
+    /// observable at GET http://127.0.0.1:34872/debug/routing — used to verify
+    /// whether the MCP client is shipping the field.
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -473,7 +478,7 @@ impl StudioLinkMcp {
     )]
     async fn run_code(&self, params: Parameters<RunCodeParams>) -> String {
         let p = params.0;
-        match tools::core::run_code(&self.state, None, &p.command).await {
+        match tools::core::run_code(&self.state, p.session_id.as_deref(), &p.command).await {
             Ok(result) => ok_text(result),
             Err(e) => err_text(e),
         }

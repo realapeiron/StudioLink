@@ -36,6 +36,9 @@ pub fn create_router(state: SharedState, _global_notify_rx: watch::Receiver<bool
         .route("/switch_session", post(handle_switch_session))
         // Health
         .route("/health", get(handle_health))
+        // v0.6 diagnostic: last 50 tool dispatches with target_session value.
+        // Lets us verify whether the MCP client is shipping session_id.
+        .route("/debug/routing", get(handle_debug_routing))
         .layer(CorsLayer::permissive())
         .with_state(state)
 }
@@ -222,5 +225,17 @@ async fn handle_health(State(state): State<SharedState>) -> Json<serde_json::Val
         "active_session": active,
         "connected_sessions": session_count,
         "plugin_connected": s.is_plugin_connected(),
+    }))
+}
+
+/// GET /debug/routing — Last 50 tool dispatches with their target_session.
+/// Used to diagnose whether the MCP client is shipping session_id at all.
+async fn handle_debug_routing(State(state): State<SharedState>) -> Json<serde_json::Value> {
+    let s = state.lock().await;
+    let entries: Vec<&crate::state::RoutingObservation> = s.routing_log.iter().collect();
+    Json(serde_json::json!({
+        "count": entries.len(),
+        "entries": entries,
+        "note": "target_session=null means the call routed to active_session (default behavior). target_session=string means the MCP client passed an explicit session_id.",
     }))
 }

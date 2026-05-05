@@ -72,6 +72,9 @@ pub async fn send_to_plugin(
     let mut rx = {
         let mut s = state.lock().await;
 
+        // v0.6 routing diagnostic: log every dispatch with its target_session
+        s.log_routing(tool, target_session);
+
         let resolved_session: String = match target_session {
             Some(sid) => {
                 if !s.sessions.contains_key(sid) {

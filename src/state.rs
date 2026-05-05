@@ -55,6 +55,16 @@ pub(crate) struct SessionState {
     pub notify_rx: watch::Receiver<bool>,
 }
 
+/// Per-call routing observation (for v0.6 session_id debug). Records every
+/// tool dispatch so we can verify whether the MCP client is shipping the
+/// session_id field at all. Bounded ring (last 50 calls).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoutingObservation {
+    pub at_unix_ms: u64,
+    pub tool: String,
+    pub target_session: Option<String>,
+}
+
 /// Shared application state between HTTP server and MCP handler
 pub struct AppState {
     /// All connected sessions, keyed by session_id
@@ -71,6 +81,9 @@ pub struct AppState {
     pub proxy_url: String,
     /// Reusable HTTP client for proxy requests (avoids recreating per request)
     pub proxy_client: Option<reqwest::Client>,
+    /// Last 50 tool dispatches with their target_session value — for v0.6
+    /// session_id routing diagnostics, exposed via GET /debug/routing.
+    pub routing_log: VecDeque<RoutingObservation>,
 }
 
 impl AppState {
@@ -84,8 +97,27 @@ impl AppState {
             proxy_mode: false,
             proxy_url: String::new(),
             proxy_client: None,
+            routing_log: VecDeque::new(),
         };
         (Arc::new(Mutex::new(state)), global_notify_rx)
+    }
+
+    /// Record a tool dispatch with its routing context. Bounded to 50 entries
+    /// — used by GET /debug/routing to verify whether the MCP client is
+    /// shipping session_id at all.
+    pub fn log_routing(&mut self, tool: &str, target_session: Option<&str>) {
+        let at_unix_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        if self.routing_log.len() >= 50 {
+            self.routing_log.pop_front();
+        }
+        self.routing_log.push_back(RoutingObservation {
+            at_unix_ms,
+            tool: tool.to_string(),
+            target_session: target_session.map(|s| s.to_string()),
+        });
     }
 
     // ═══════════════════════════════════════════
@@ -329,6 +361,7 @@ mod tests {
             proxy_mode: false,
             proxy_url: String::new(),
             proxy_client: None,
+            routing_log: VecDeque::new(),
         }
     }
 
