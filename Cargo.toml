@@ -1,6 +1,6 @@
 [package]
 name = "studiolink"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 description = "Advanced Roblox Studio MCP Server — 67 tools for professional game development with multi-chat session affinity"
 license = "MIT"

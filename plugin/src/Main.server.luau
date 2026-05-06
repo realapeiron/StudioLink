@@ -139,7 +139,20 @@ marker.Parent = game:GetService("ReplicatedStorage")
 			if marker and marker:IsA("StringValue") and marker.Value ~= "" then
 				local resultStr = marker.Value
 				marker:Destroy()
-				runnerScript:Destroy()
+				-- Defer Script destruction by 60s so any task.spawn coroutines
+				-- launched by the user code keep running. Destroying the
+				-- Script kills its threads — which would silently break
+				-- fire-and-forget patterns like task.spawn(function()
+				-- task.wait(2); … end). Next run_code call cleans up the
+				-- previous "__StudioLinkRunner" first anyway, so the delayed
+				-- destroy is a safety net.
+				task.delay(60, function()
+					if runnerScript and runnerScript.Parent then
+						pcall(function()
+							runnerScript:Destroy()
+						end)
+					end
+				end)
 				return true, resultStr, nil
 			end
 			task.wait(0.2)
@@ -147,7 +160,9 @@ marker.Parent = game:GetService("ReplicatedStorage")
 
 		-- Timeout cleanup
 		local marker2 = RS:FindFirstChild("__StudioLinkResult")
-		if marker2 then marker2:Destroy() end
+		if marker2 then
+			marker2:Destroy()
+		end
 		runnerScript:Destroy()
 		return false, nil, "Script execution timed out (15s)"
 	end
@@ -318,7 +333,7 @@ local SERVER_PORT = 34872
 local SERVER_URL = "http://127.0.0.1:" .. SERVER_PORT
 local POLL_INTERVAL = 0.5 -- seconds between poll retries on error
 local REGISTER_RETRY_INTERVAL = 3 -- seconds between registration retries
-local VERSION = "0.7.0"
+local VERSION = "0.7.1"
 
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)

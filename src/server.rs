@@ -191,8 +191,11 @@ async fn handle_proxy_tool_call(
         }
     };
 
-    // Wait for the plugin to respond (timeout: 60 seconds)
-    let timeout = tokio::time::timeout(std::time::Duration::from_secs(60), rx.recv()).await;
+    // Wait for the plugin to respond. 125s = EXTENDED_TIMEOUT (120s used by
+    // long-running tools like asset_audit, wait_for_*, multi_client_test) +
+    // 5s buffer. Previously hardcoded 60s, which timed out long calls before
+    // the plugin had a chance to finish.
+    let timeout = tokio::time::timeout(std::time::Duration::from_secs(125), rx.recv()).await;
 
     match timeout {
         Ok(Some(response)) => Ok(Json(response)),
