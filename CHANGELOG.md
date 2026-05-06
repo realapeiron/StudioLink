@@ -2,6 +2,39 @@
 
 All notable changes to StudioLink. Format roughly follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [v0.7.2] — Audit-driven cleanup
+
+Three-agent code audit run; the genuine findings were addressed here.
+Most agent flags were false positives (intentional design — auto-recovery
+asymmetry, heartbeat 120s vs 45s gap, UUID collision, etc.) and dropped.
+
+### Fixed
+- **wait_for_condition mixed-type compare**: ordering operators (`>`, `>=`,
+  `<`, `<=`) silently returned false when one side was a numeric string —
+  e.g. `compare("100", ">", 50)`. Roblox property reads (StringValue.Value,
+  attribute strings) frequently surface numeric strings, so the silent
+  fail led to wait_for_condition timing out for what looked like a valid
+  match. Now both sides go through `tonumber` coercion before comparison.
+- **response_channels orphan leak**: when a tool timed out, its receiver
+  was dropped but the matching sender stayed in `AppState.response_channels`
+  until the next session-register-time cleanup pass. Long-running servers
+  with repeated timeouts grew the map indefinitely. `send_to_plugin` now
+  calls `cleanup_expired` opportunistically at the start of every dispatch.
+- **Plugin registration spin loop**: when the studiolink server was offline,
+  the plugin's initial `while not registered do … task.wait(5) end` loop ran
+  forever. Bounded to 50 attempts (~4 minutes), then exits with a warn so
+  the plugin doesn't hang Studio.
+- **Screenshot 20 MB cap → 50 MB**: 5K (5120×2880) PNGs can hit 12+ MB raw,
+  base64 pushes them past the old cap. Realistic captures from external
+  displays were being rejected.
+
+### Verified false-positive (no change)
+- Server-context tool blocking (B1) — `executeServerTool` is already wrapped
+  in `task.spawn` at line 294 of Main.server.luau. Audit agent missed it.
+- `Plugin.Unloading` missing in Server context (B3) — Server context
+  unregisters on `start_stop_play(stop)` via `task.defer`, which is the
+  reliable path; the Edit-context Unloading hook covers Studio quits.
+
 ## [v0.7.1] — Bug fixes & housekeeping
 
 ### Fixed

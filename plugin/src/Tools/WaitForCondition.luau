@@ -2,21 +2,39 @@
 local PlayHelpers = require(script.Parent.Parent.Utils.PlayHelpers)
 local PathResolver = require(script.Parent.Parent.Utils.PathResolver)
 
+-- Coerce strings to numbers for ordering comparisons. Roblox property reads
+-- frequently return strings even when the user thinks they have numbers
+-- (StringValue.Value, attribute strings, etc), and silently returning false
+-- here led to confusing timeout-with-no-match results.
+local function asNumber(x: any): number?
+	if type(x) == "number" then
+		return x
+	elseif type(x) == "string" then
+		return tonumber(x)
+	end
+	return nil
+end
+
 local function compare(value: any, op: string, target: any): boolean
 	if op == "==" then
 		return value == target
 	elseif op == "!=" then
 		return value ~= target
-	elseif type(value) ~= "number" or type(target) ~= "number" then
+	end
+	-- Ordering operators: try to coerce both sides to numbers.
+	local n1 = asNumber(value)
+	local n2 = asNumber(target)
+	if n1 == nil or n2 == nil then
 		return false
-	elseif op == ">" then
-		return value > target
+	end
+	if op == ">" then
+		return n1 > n2
 	elseif op == ">=" then
-		return value >= target
+		return n1 >= n2
 	elseif op == "<" then
-		return value < target
+		return n1 < n2
 	elseif op == "<=" then
-		return value <= target
+		return n1 <= n2
 	end
 	return false
 end

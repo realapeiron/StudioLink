@@ -333,7 +333,7 @@ local SERVER_PORT = 34872
 local SERVER_URL = "http://127.0.0.1:" .. SERVER_PORT
 local POLL_INTERVAL = 0.5 -- seconds between poll retries on error
 local REGISTER_RETRY_INTERVAL = 3 -- seconds between registration retries
-local VERSION = "0.7.1"
+local VERSION = "0.7.2"
 
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)
@@ -644,14 +644,36 @@ end
 
 print("[StudioLink] Starting session-aware polling on " .. SERVER_URL)
 
--- Step 1: Register with retries until server is available
+-- Step 1: Register with bounded retries (cap at 50 attempts ≈ 4 minutes at
+-- 5s intervals). Without a cap, an offline StudioLink server caused the
+-- plugin to spin forever — same dangling-task pattern that hurt longer
+-- Studio sessions.
+local MAX_REGISTER_RETRIES = 50
 local registered = false
-while not registered do
+local retryCount = 0
+while not registered and retryCount < MAX_REGISTER_RETRIES do
 	registered = registerSession()
 	if not registered then
-		print("[StudioLink] Server not available, retrying in " .. tostring(REGISTER_RETRY_INTERVAL) .. "s...")
+		retryCount = retryCount + 1
+		print(
+			"[StudioLink] Server not available (attempt "
+				.. retryCount
+				.. "/"
+				.. MAX_REGISTER_RETRIES
+				.. "), retrying in "
+				.. tostring(REGISTER_RETRY_INTERVAL)
+				.. "s..."
+		)
 		task.wait(REGISTER_RETRY_INTERVAL)
 	end
+end
+if not registered then
+	warn(
+		"[StudioLink] Failed to register after "
+			.. MAX_REGISTER_RETRIES
+			.. " attempts. Plugin idle until next reload. Check that the studiolink server is running."
+	)
+	return
 end
 
 -- Step 2: Main polling loop with session_id

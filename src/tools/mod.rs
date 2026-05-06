@@ -59,6 +59,15 @@ pub async fn send_to_plugin(
     args: Value,
     timeout: Duration,
 ) -> Result<Value> {
+    // Opportunistic cleanup of response channels whose receivers were dropped
+    // (prior tool timeout or panic). Without this, the response_channels
+    // HashMap grows over the lifetime of long-running servers as orphaned
+    // (tx, dropped-rx) pairs accumulate. Cheap — single pass over a small map.
+    {
+        let mut s = state.lock().await;
+        s.cleanup_expired();
+    }
+
     // Check if we're in proxy mode
     let (proxy_mode, proxy_url) = {
         let s = state.lock().await;

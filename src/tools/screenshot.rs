@@ -9,7 +9,11 @@ use tokio::sync::Mutex;
 use crate::error::{Result, StudioLinkError};
 use crate::state::AppState;
 
-const MAX_SIZE_BYTES: usize = 20 * 1024 * 1024; // 20 MB pre-encode
+// 50 MB pre-encode (was 20 MB). Studio screenshots are typically 2-5 MB but a
+// 5K (5120×2880) PNG can be 8-12 MB and 6K+ pushes 15+ MB; base64 adds ~33%,
+// so a 15 MB raw → ~20 MB encoded. 20 MB cap was rejecting realistic captures
+// from high-DPI/external displays.
+const MAX_SIZE_BYTES: usize = 50 * 1024 * 1024;
 
 /// viewport_screenshot — Capture the full Studio window via macOS
 /// `screencapture` and return base64 PNG.
