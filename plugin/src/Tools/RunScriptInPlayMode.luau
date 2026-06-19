@@ -18,8 +18,11 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		return false, nil, "No code provided"
 	end
 
-	-- Check if we're in play mode
-	local inPlayMode = (_G.StudioLinkMode == "start_play" or _G.StudioLinkMode == "run_server")
+	-- Detect play mode from the live runtime, not a cached _G flag that goes
+	-- stale when play is started/stopped via Studio's own buttons (the flag is
+	-- only set when start_stop_play drove the transition).
+	local RunService = game:GetService("RunService")
+	local inPlayMode = RunService:IsRunning()
 
 	if inPlayMode then
 		-- During play mode, Server context runs as a separate session.

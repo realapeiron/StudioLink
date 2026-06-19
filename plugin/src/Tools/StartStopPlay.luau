@@ -26,8 +26,16 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		end
 		-- Use task.defer so response is sent BEFORE play mode starts
 		task.defer(function()
-			StudioTestService:ExecutePlayModeAsync({})
-			-- ExecutePlayModeAsync yields until play ends
+			-- ExecutePlayModeAsync yields until play ends. Without pcall, a throw
+			-- (already in play, invalid options) would kill this thread and leave
+			-- mode stuck at "start_play" forever — run_script_in_play_mode and the
+			-- stop listener would then misbehave for the rest of the session.
+			local ok, err = pcall(function()
+				StudioTestService:ExecutePlayModeAsync({})
+			end)
+			if not ok then
+				warn("[StudioLink] ExecutePlayModeAsync failed: " .. tostring(err))
+			end
 			PluginState.mode = "stop"
 			_G.StudioLinkMode = "stop"
 		end)
@@ -59,7 +67,14 @@ return function(args: { [string]: any }): (boolean, any, string?)
 			pcall(function() pluginRef:SetSetting("StudioLink_StopRequested", false) end)
 		end
 		task.defer(function()
-			StudioTestService:ExecuteRunModeAsync({})
+			-- Same guard as start_play: a throw here must not strand mode at
+			-- "run_server".
+			local ok, err = pcall(function()
+				StudioTestService:ExecuteRunModeAsync({})
+			end)
+			if not ok then
+				warn("[StudioLink] ExecuteRunModeAsync failed: " .. tostring(err))
+			end
 			PluginState.mode = "stop"
 			_G.StudioLinkMode = "stop"
 		end)

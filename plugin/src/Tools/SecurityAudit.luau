@@ -2,6 +2,7 @@
 -- SecurityAudit: Scan place for security vulnerabilities
 
 local TreeWalker = require(script.Parent.Parent.Utils.TreeWalker)
+local RemoteValidation = require(script.Parent.Parent.Utils.RemoteValidation)
 local HttpService = game:GetService("HttpService")
 
 local SecurityAudit = {}
@@ -16,32 +17,24 @@ local function getScriptSource(script: Instance): string?
 	return if ok then src else nil
 end
 
--- Check if a server script validates Remote arguments
-local function checkRemoteValidation(serverScripts: { Instance }, remoteName: string): boolean
-	for _, script in ipairs(serverScripts) do
-		local source = getScriptSource(script)
-		if source and source:find(remoteName) then
-			-- Look for validation patterns: typeof, type, assert, if...then
-			if source:find("typeof%(") or source:find("type%(") or source:find("assert%(") then
-				return true
-			end
-			-- Check for conditional checks on the argument
-			if source:find("if%s+.-then") then
-				return true
-			end
-		end
-	end
-	return false
-end
-
 function SecurityAudit.scan(): (boolean, any, string?)
 	local issues: { any } = {}
-	local serverScripts = TreeWalker.collectScripts()
+	local serverScripts = TreeWalker.collectServerScripts()
+
+	-- Read every server script source once; the validation heuristics
+	-- (Utils.RemoteValidation) are plain-text and unit-tested under Lune.
+	local serverScriptSources: { string } = {}
+	for _, script in ipairs(serverScripts) do
+		local source = getScriptSource(script)
+		if source then
+			table.insert(serverScriptSources, source)
+		end
+	end
 
 	-- 1. Check all RemoteEvents for server-side validation
 	local remotes = TreeWalker.collectByClass("RemoteEvent")
 	for _, remote in ipairs(remotes) do
-		local hasValidation = checkRemoteValidation(serverScripts, remote.Name)
+		local hasValidation = RemoteValidation.validatesRemote(serverScriptSources, remote.Name)
 		if not hasValidation then
 			table.insert(issues, {
 				severity = "Critical",
@@ -56,7 +49,7 @@ function SecurityAudit.scan(): (boolean, any, string?)
 	-- 2. Check RemoteFunctions
 	local remoteFunctions = TreeWalker.collectByClass("RemoteFunction")
 	for _, rf in ipairs(remoteFunctions) do
-		local hasValidation = checkRemoteValidation(serverScripts, rf.Name)
+		local hasValidation = RemoteValidation.validatesRemote(serverScriptSources, rf.Name)
 		if not hasValidation then
 			table.insert(issues, {
 				severity = "Critical",

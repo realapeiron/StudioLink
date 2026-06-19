@@ -47,6 +47,30 @@ function TreeWalker.collectScripts(root: Instance?): { Instance }
 	return scripts
 end
 
+-- Collect scripts from SERVER-context containers only. Excludes StarterGui /
+-- StarterPack / StarterPlayer / ReplicatedFirst, which replicate to and run on
+-- clients — a LocalScript there must not be mistaken for server-side code (e.g.
+-- security_scan checking whether a RemoteEvent is validated on the server).
+function TreeWalker.collectServerScripts(): { Instance }
+	local scripts = {}
+	local services = {
+		game:GetService("Workspace"),
+		game:GetService("ServerScriptService"),
+		game:GetService("ServerStorage"),
+		game:GetService("ReplicatedStorage"),
+	}
+
+	for _, svc in ipairs(services) do
+		TreeWalker.walkDescendants(svc, function(instance)
+			if instance:IsA("LuaSourceContainer") then
+				table.insert(scripts, instance)
+			end
+		end)
+	end
+
+	return scripts
+end
+
 -- Collect all instances of a given class across main services
 function TreeWalker.collectByClass(className: string): { Instance }
 	local results = {}

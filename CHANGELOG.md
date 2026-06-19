@@ -2,6 +2,69 @@
 
 All notable changes to StudioLink. Format roughly follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [v0.7.3] — Second audit pass: plugin logic bugs + input validation
+
+Follow-up audit (Rust + Luau split across parallel reviewers, then each finding
+verified by hand). The genuine bugs below were fixed test-first where the logic
+was pure: a Lune-based unit harness now covers the comparison/security
+heuristics that have no Roblox dependency, plus a parse check over every plugin
+source file.
+
+### Fixed (plugin — Luau)
+- **`wait_for_condition` equality didn't coerce types**: v0.7.2 added numeric
+  coercion for ordering operators (`>`, `<`, …) but left `==` / `!=` doing raw
+  comparison — so the *most common* operator still silently failed when a
+  property read returned a number and the JSON arg was a numeric string (or vice
+  versa): `100 == "100"` → false → wait times out on a condition that looks
+  satisfied. All operators now coerce when both sides are numeric, while
+  non-numeric strings still compare literally. Logic extracted to
+  `Utils/NumCompare.luau` and unit-tested.
+- **`security_scan` produced false negatives** (an unvalidated remote reported
+  as safe): remote names were matched with `string.find` in *pattern* mode, so a
+  name like `Data.Save` matched the unrelated `DataXSave` (`.` = any char) and a
+  name like `Buy-Item` failed to match its own script (`-` = quantifier).
+  Matching is now plain-text. Separately, a bare `if … then` anywhere in a script
+  counted as "input validation" — almost every script has one — so the check was
+  near-meaningless; only real `typeof` / `type` / `assert` guards count now.
+  Validation scope also no longer includes client containers (StarterGui/Pack/
+  Player). Heuristics extracted to `Utils/RemoteValidation.luau` and unit-tested.
+- **`character_teleport` could freeze a character permanently**: in
+  `anchor_during` mode, if `PivotTo` threw (e.g. a degenerate `CFrame.lookAt`)
+  the `Anchored = false` restore never ran. Now wrapped so anchoring is always
+  restored.
+- **`start_stop_play` could strand the mode flag**: `ExecutePlayModeAsync` /
+  `ExecuteRunModeAsync` ran un-`pcall`'d inside `task.defer`; a throw killed the
+  thread and left `mode` stuck at `start_play`/`run_server` for the session.
+  Now guarded.
+- **`network_monitor` could throw on the hot path and leaked memory**:
+  `JSONEncode` of remote args runs inside `OnServerEvent`, but `Instance` /
+  `Vector3` / `CFrame` args (common) aren't encodable and threw; now guarded with
+  a per-arg size fallback. A write-only `timestamps` array that grew on every
+  fire and was never read back was removed.
+- **`input_simulate` always reported success**: even when every action failed it
+  returned `success = true`. Now reports failure when nothing executed (partial
+  success stays truthy so the per-action breakdown survives the dispatch layer,
+  which drops `result` on failure).
+- **`run_script_in_play_mode` detected play via a stale `_G` flag**: code started
+  via Studio's own Play button left the flag at `stop`, so the tool ran in the
+  Edit DataModel. Now uses `RunService:IsRunning()`.
+
+### Fixed (server — Rust)
+- **Empty-input validation gaps**: `datastore_*`, `get`/`set_script_source`,
+  `grep_scripts`, `search_objects`, and the `instance` tools accepted empty
+  `store_name` / `key` / `path` / `pattern` / `class_name`, unlike their siblings
+  (`script_patch` etc.). The plugin didn't backstop this — Lua treats `""` as
+  truthy, so an empty key reached `GetDataStore("")`. All now reject empty input
+  with a clear `InvalidArguments` error.
+
+### Added (testing)
+- Lune unit-test harness: `plugin/tests/NumCompare.test.luau`,
+  `RemoteValidation.test.luau`, and `parse_check.luau` (syntax check over all 51
+  plugin source files). Run with `lune run plugin/tests/<file>`.
+- 15 Rust validation tests (`datastore`, `scripts`, `instance`).
+
+### Tests at this version: 48 Rust + 27 Lune assertions; clippy + fmt clean.
+
 ## [v0.7.2] — Audit-driven cleanup
 
 Three-agent code audit run; the genuine findings were addressed here.

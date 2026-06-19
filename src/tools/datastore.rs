@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use super::{send_to_plugin, DEFAULT_TIMEOUT, EXTENDED_TIMEOUT};
-use crate::error::Result;
+use crate::error::{Result, StudioLinkError};
 use crate::state::AppState;
 
 /// Tool 7: datastore_list — List all DataStore names in the experience
@@ -17,6 +17,11 @@ pub async fn datastore_get(
     store_name: &str,
     key: &str,
 ) -> Result<serde_json::Value> {
+    if store_name.is_empty() || key.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "store_name and key are required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -34,6 +39,11 @@ pub async fn datastore_set(
     key: &str,
     value: serde_json::Value,
 ) -> Result<serde_json::Value> {
+    if store_name.is_empty() || key.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "store_name and key are required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -50,6 +60,11 @@ pub async fn datastore_delete(
     store_name: &str,
     key: &str,
 ) -> Result<serde_json::Value> {
+    if store_name.is_empty() || key.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "store_name and key are required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -67,6 +82,11 @@ pub async fn datastore_scan(
     page_size: Option<u32>,
     max_pages: Option<u32>,
 ) -> Result<serde_json::Value> {
+    if store_name.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "store_name is required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -79,4 +99,51 @@ pub async fn datastore_scan(
         EXTENDED_TIMEOUT,
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::StudioLinkError;
+    use serde_json::json;
+
+    fn make_state() -> Arc<Mutex<AppState>> {
+        AppState::new().0
+    }
+
+    #[tokio::test]
+    async fn get_rejects_empty_store_name() {
+        let err = datastore_get(&make_state(), "", "key").await.unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn get_rejects_empty_key() {
+        let err = datastore_get(&make_state(), "Store", "").await.unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn set_rejects_empty_key() {
+        let err = datastore_set(&make_state(), "Store", "", json!(1))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn delete_rejects_empty_store_name() {
+        let err = datastore_delete(&make_state(), "", "key")
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn scan_rejects_empty_store_name() {
+        let err = datastore_scan(&make_state(), "", None, None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
 }

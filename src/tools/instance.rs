@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use super::{send_to_plugin, DEFAULT_TIMEOUT};
-use crate::error::Result;
+use crate::error::{Result, StudioLinkError};
 use crate::state::AppState;
 
 /// Tool 38: get_file_tree — Hierarchical instance tree
@@ -27,6 +27,9 @@ pub async fn get_instance_properties(
     state: &Arc<Mutex<AppState>>,
     path: &str,
 ) -> Result<serde_json::Value> {
+    if path.is_empty() {
+        return Err(StudioLinkError::InvalidArguments("path is required".into()));
+    }
     send_to_plugin(
         state,
         None,
@@ -45,6 +48,11 @@ pub async fn set_property(
     value: serde_json::Value,
     value_type: Option<&str>,
 ) -> Result<serde_json::Value> {
+    if path.is_empty() || property.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "path and property are required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -68,6 +76,11 @@ pub async fn mass_set_property(
     value: serde_json::Value,
     value_type: Option<&str>,
 ) -> Result<serde_json::Value> {
+    if paths.is_empty() || property.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "paths (non-empty) and property are required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -90,6 +103,11 @@ pub async fn create_instance(
     parent_path: Option<&str>,
     properties: Option<serde_json::Value>,
 ) -> Result<serde_json::Value> {
+    if class_name.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "class_name is required".into(),
+        ));
+    }
     send_to_plugin(
         state,
         None,
@@ -109,6 +127,9 @@ pub async fn delete_instance(
     state: &Arc<Mutex<AppState>>,
     path: &str,
 ) -> Result<serde_json::Value> {
+    if path.is_empty() {
+        return Err(StudioLinkError::InvalidArguments("path is required".into()));
+    }
     send_to_plugin(
         state,
         None,
@@ -117,4 +138,61 @@ pub async fn delete_instance(
         DEFAULT_TIMEOUT,
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::StudioLinkError;
+    use serde_json::json;
+
+    fn make_state() -> Arc<Mutex<AppState>> {
+        AppState::new().0
+    }
+
+    #[tokio::test]
+    async fn get_properties_rejects_empty_path() {
+        let err = get_instance_properties(&make_state(), "")
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn set_property_rejects_empty_path() {
+        let err = set_property(&make_state(), "", "Anchored", json!(true), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn set_property_rejects_empty_property() {
+        let err = set_property(&make_state(), "Workspace.Part", "", json!(true), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn mass_set_rejects_empty_paths() {
+        let err = mass_set_property(&make_state(), vec![], "Anchored", json!(true), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn create_rejects_empty_class_name() {
+        let err = create_instance(&make_state(), "", None, None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn delete_rejects_empty_path() {
+        let err = delete_instance(&make_state(), "").await.unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
 }

@@ -148,6 +148,22 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		end
 	end
 
+	-- Report tool-level failure only when NOTHING executed. On partial success
+	-- we must stay truthy: the dispatch layer drops `result` when success=false
+	-- (Rust side keeps only `error`), so failing here would discard the
+	-- per-action breakdown the caller needs.
+	if executed == 0 then
+		local firstErr = if #errors > 0 then errors[1].error else "no actions executed"
+		return false,
+			{
+				strategy_used = "vim",
+				executed_count = 0,
+				total_count = #actions,
+				errors = errors,
+			},
+			string.format("all %d action(s) failed (first: %s)", #actions, firstErr)
+	end
+
 	return true,
 		{
 			strategy_used = "vim",

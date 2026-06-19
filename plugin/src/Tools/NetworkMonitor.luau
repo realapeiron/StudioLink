@@ -8,7 +8,10 @@ local NetworkMonitor = {}
 
 local monitoring = false
 local connections: { RBXScriptConnection } = {}
-local trafficLog: { [string]: { count: number, totalSize: number, timestamps: { number } } } = {}
+-- Per-remote counters. (Previously also held a `timestamps` array that grew on
+-- every fire but was never read back in stop() — an unbounded leak on spammy
+-- remotes. Removed.)
+local trafficLog: { [string]: { count: number, totalSize: number } } = {}
 local startTime = 0
 
 function NetworkMonitor.start(args: { [string]: any }): (boolean, any, string?)
@@ -24,18 +27,23 @@ function NetworkMonitor.start(args: { [string]: any }): (boolean, any, string?)
 	local remotes = TreeWalker.collectByClass("RemoteEvent")
 	for _, remote in ipairs(remotes) do
 		local remoteName = remote:GetFullName()
-		trafficLog[remoteName] = { count = 0, totalSize = 0, timestamps = {} }
+		trafficLog[remoteName] = { count = 0, totalSize = 0 }
 
 		local conn = (remote :: RemoteEvent).OnServerEvent:Connect(function(player, ...)
 			if not monitoring then return end
 			local entry = trafficLog[remoteName]
 			if entry then
 				entry.count += 1
-				-- Estimate data size
+				-- Estimate payload size. JSONEncode throws on values it can't
+				-- serialize (Instance, Vector3, CFrame, …) which are common in
+				-- remote args, and this runs in the OnServerEvent hot path — so
+				-- guard it and fall back to a rough per-argument estimate.
 				local remoteArgs = { ... }
-				local sizeEstimate = #HttpService:JSONEncode(remoteArgs)
-				entry.totalSize += sizeEstimate
-				table.insert(entry.timestamps, os.clock() - startTime)
+				local argCount = select("#", ...)
+				local encodeOk, encoded = pcall(function()
+					return HttpService:JSONEncode(remoteArgs)
+				end)
+				entry.totalSize += if encodeOk then #encoded else argCount * 8
 			end
 		end)
 		table.insert(connections, conn)
@@ -45,7 +53,7 @@ function NetworkMonitor.start(args: { [string]: any }): (boolean, any, string?)
 	local remoteFunctions = TreeWalker.collectByClass("RemoteFunction")
 	for _, rf in ipairs(remoteFunctions) do
 		local rfName = rf:GetFullName()
-		trafficLog[rfName] = { count = 0, totalSize = 0, timestamps = {} }
+		trafficLog[rfName] = { count = 0, totalSize = 0 }
 		-- Note: Can't easily hook OnServerInvoke without replacing it
 		-- We track the existence for the report
 	end

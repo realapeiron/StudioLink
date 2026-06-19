@@ -33,10 +33,18 @@ return function(args: { [string]: any }): (boolean, any, string?)
 	if args.anchor_during then
 		local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if hrp then
+			-- Anchor → move → unanchor. If PivotTo throws (e.g. a degenerate
+			-- CFrame.lookAt when position == look-target), we MUST still restore
+			-- Anchored, or the character stays frozen for the whole play session.
 			hrp.Anchored = true
-			character:PivotTo(cf)
-			task.wait(0.05)
+			local ok, err = pcall(function()
+				character:PivotTo(cf)
+				task.wait(0.05)
+			end)
 			hrp.Anchored = false
+			if not ok then
+				return false, nil, "teleport failed: " .. tostring(err)
+			end
 		else
 			character:PivotTo(cf)
 		end
