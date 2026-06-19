@@ -44,6 +44,20 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 /// Extended timeout for long-running operations (120 seconds)
 const EXTENDED_TIMEOUT: Duration = Duration::from_secs(120);
 
+/// Inject the caller's `instance_id` into request args as `__caller_id`, so the
+/// plugin's stateful tools can key their module-level state per chat. Only
+/// touches object args (every StudioLink tool sends an object); other shapes
+/// pass through untouched.
+fn inject_caller_id(mut args: Value, instance_id: &str) -> Value {
+    if let Value::Object(ref mut map) = args {
+        map.insert(
+            "__caller_id".to_string(),
+            Value::String(instance_id.to_string()),
+        );
+    }
+    args
+}
+
 /// Send a tool request to the plugin and wait for the response.
 ///
 /// `target_session` lets a single call route to a specific session_id,
@@ -67,6 +81,14 @@ pub async fn send_to_plugin(
         let mut s = state.lock().await;
         s.cleanup_expired();
     }
+
+    // Stamp the caller's instance_id so the plugin can isolate stateful tool
+    // state per chat — multiple chats may share one Studio session. Travels in
+    // the args, so it survives both the direct queue and the proxy hop.
+    let args = {
+        let s = state.lock().await;
+        inject_caller_id(args, &s.instance_id)
+    };
 
     // Check if we're in proxy mode
     let (proxy_mode, proxy_url) = {
@@ -241,4 +263,23 @@ pub fn tool_result(content: &str) -> Vec<rmcp::model::Content> {
 #[allow(dead_code)]
 pub fn tool_error(error: &str) -> Vec<rmcp::model::Content> {
     vec![rmcp::model::Content::text(format!("Error: {}", error))]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn injects_caller_id_into_object_args() {
+        let out = inject_caller_id(json!({ "path": "x" }), "abc-123");
+        assert_eq!(out["__caller_id"], "abc-123");
+        assert_eq!(out["path"], "x");
+    }
+
+    #[test]
+    fn leaves_non_object_args_untouched() {
+        let out = inject_caller_id(json!([1, 2, 3]), "abc-123");
+        assert_eq!(out, json!([1, 2, 3]));
+    }
 }

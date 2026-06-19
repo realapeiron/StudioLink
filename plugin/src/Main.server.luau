@@ -333,7 +333,7 @@ local SERVER_PORT = 34872
 local SERVER_URL = "http://127.0.0.1:" .. SERVER_PORT
 local POLL_INTERVAL = 0.5 -- seconds between poll retries on error
 local REGISTER_RETRY_INTERVAL = 3 -- seconds between registration retries
-local VERSION = "0.7.3"
+local VERSION = "0.7.4"
 
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)
@@ -383,8 +383,8 @@ Tools["test_report"] = function(args) return TestRunner.report(args) end
 
 -- Security tools (Faz 4)
 local SecurityAudit = require(script.Parent.Tools.SecurityAudit)
-Tools["security_scan"] = function() return SecurityAudit.scan() end
-Tools["security_report"] = function() return SecurityAudit.report() end
+Tools["security_scan"] = function(args) return SecurityAudit.scan(args) end
+Tools["security_report"] = function(args) return SecurityAudit.report(args) end
 
 -- Analysis tools (Faz 4)
 Tools["dependency_map"] = require(script.Parent.Tools.DependencyMap)

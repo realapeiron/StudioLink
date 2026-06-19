@@ -96,6 +96,12 @@ pub struct AppState {
     /// instance has its own bound_session_id, so multi-chat is isolated by
     /// process boundary.
     pub bound_session_id: Option<String>,
+    /// Unique per-process id (one studiolink instance ≈ one AI chat). Injected
+    /// into every plugin request as `__caller_id` so the plugin's stateful tools
+    /// (profiler, test runner, snapshots, security scan) can isolate their
+    /// module-level state per chat — even when two chats drive the same Studio
+    /// session and thus share one plugin.
+    pub instance_id: String,
 }
 
 impl AppState {
@@ -111,6 +117,7 @@ impl AppState {
             proxy_client: None,
             routing_log: VecDeque::new(),
             bound_session_id: None,
+            instance_id: Uuid::new_v4().to_string(),
         };
         (Arc::new(Mutex::new(state)), global_notify_rx)
     }
@@ -380,6 +387,7 @@ mod tests {
             proxy_client: None,
             routing_log: VecDeque::new(),
             bound_session_id: None,
+            instance_id: "test-instance".to_string(),
         }
     }
 

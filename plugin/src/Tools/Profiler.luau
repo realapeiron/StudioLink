@@ -2,15 +2,18 @@
 -- Profiler: ScriptProfiler integration for performance analysis
 
 local Profiler = {}
-local lastProfileData: any = nil
+-- Keyed by __caller_id so two chats sharing one Studio session don't clobber
+-- each other's in-flight profile.
+local lastProfileData: { [string]: any } = {}
 
 function Profiler.start(args: { [string]: any }): (boolean, any, string?)
 	-- This is not a per-script CPU profiler (that needs ScriptProfiler /
 	-- MicroProfiler — see microprofiler_capture). It snapshots engine Stats at
 	-- start so profile_stop can report what changed over the interval.
+	local callerId = args.__caller_id or "default"
 	local ok, err = pcall(function()
 		local Stats = game:GetService("Stats")
-		lastProfileData = {
+		lastProfileData[callerId] = {
 			startTime = os.clock(),
 			startInstanceCount = Stats.InstanceCount,
 			running = true,
@@ -29,13 +32,15 @@ function Profiler.start(args: { [string]: any }): (boolean, any, string?)
 end
 
 function Profiler.stop(args: { [string]: any }): (boolean, any, string?)
-	if not lastProfileData or not lastProfileData.running then
+	local callerId = args.__caller_id or "default"
+	local data = lastProfileData[callerId]
+	if not data or not data.running then
 		return false, nil, "Profiler is not running"
 	end
 
-	local duration = os.clock() - lastProfileData.startTime
-	lastProfileData.running = false
-	lastProfileData.duration = duration
+	local duration = os.clock() - data.startTime
+	data.running = false
+	data.duration = duration
 
 	-- Report the interval: InstanceCount as a start→end delta, the rest as
 	-- instantaneous end-of-interval readings (Stats exposes no history).
@@ -43,9 +48,9 @@ function Profiler.stop(args: { [string]: any }): (boolean, any, string?)
 	local endInstanceCount = Stats.InstanceCount
 	local statsData = {
 		duration = math.floor(duration * 1000) / 1000,
-		instanceCountStart = lastProfileData.startInstanceCount,
+		instanceCountStart = data.startInstanceCount,
 		instanceCountEnd = endInstanceCount,
-		instanceCountDelta = endInstanceCount - (lastProfileData.startInstanceCount or endInstanceCount),
+		instanceCountDelta = endInstanceCount - (data.startInstanceCount or endInstanceCount),
 		heartbeatTimeMs = Stats.HeartbeatTimeMs,
 		physicsStepTimeMs = Stats.PhysicsStepTimeMs,
 		movingPrimitivesCount = Stats.MovingPrimitivesCount,

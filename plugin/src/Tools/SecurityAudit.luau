@@ -7,8 +7,9 @@ local HttpService = game:GetService("HttpService")
 
 local SecurityAudit = {}
 
--- Stored scan results for report generation
-local lastScanResults: { any }?  = nil
+-- Stored scan results for report generation, keyed by __caller_id so two chats
+-- on one Studio session don't overwrite each other's scan before report.
+local lastScanResults: { [string]: { any } } = {}
 
 local function getScriptSource(script: Instance): string?
 	local ok, src = pcall(function()
@@ -17,7 +18,8 @@ local function getScriptSource(script: Instance): string?
 	return if ok then src else nil
 end
 
-function SecurityAudit.scan(): (boolean, any, string?)
+function SecurityAudit.scan(args: { [string]: any }): (boolean, any, string?)
+	local callerId = if type(args) == "table" then args.__caller_id or "default" else "default"
 	local issues: { any } = {}
 	local serverScripts = TreeWalker.collectServerScripts()
 
@@ -119,7 +121,7 @@ function SecurityAudit.scan(): (boolean, any, string?)
 		end
 	end
 
-	lastScanResults = issues :: any
+	lastScanResults[callerId] = issues
 
 	local summary = {
 		totalIssues = #issues,
@@ -140,19 +142,21 @@ function SecurityAudit.scan(): (boolean, any, string?)
 	return true, summary, nil
 end
 
-function SecurityAudit.report(): (boolean, any, string?)
-	if lastScanResults == nil then
+function SecurityAudit.report(args: { [string]: any }): (boolean, any, string?)
+	local callerId = if type(args) == "table" then args.__caller_id or "default" else "default"
+	local results = lastScanResults[callerId]
+	if results == nil then
 		return true, "No security scan results available. Run security_scan first.", nil
 	end
 
-	if #lastScanResults == 0 then
+	if #results == 0 then
 		return true, "=== StudioLink Security Report ===\n\nScan completed: No security issues found. Your place looks clean!", nil
 	end
 
 	local lines = { "=== StudioLink Security Report ===" }
 	local grouped: { [string]: { any } } = {}
 
-	for _, issue in ipairs(lastScanResults) do
+	for _, issue in ipairs(results) do
 		if not grouped[issue.severity] then
 			grouped[issue.severity] = {}
 		end

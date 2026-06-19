@@ -2,6 +2,34 @@
 
 All notable changes to StudioLink. Format roughly follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [v0.7.4] — Multi-chat state isolation + audit tail
+
+Closes the v0.7.x audit backlog.
+
+### Fixed (plugin — multi-chat isolation)
+- **Stateful tools clobbered each other across chats**: `profile_start`/`stop`,
+  `test_run`/`report`, `snapshot_take`/`compare`/`list`, and `security_scan`/
+  `report` held results in module-level locals, so two chats driving the *same*
+  Studio session overwrote each other's in-flight state. Each studiolink process
+  now stamps a unique `instance_id` into every request as `__caller_id` (carried
+  in the args, so it survives both the direct queue and the proxy hop), and those
+  four tool groups key their state by it. `security_scan`/`report` gained an
+  `args` parameter to receive it. NetworkMonitor is single-active and unchanged.
+
+### Fixed (LOW)
+- **`viewport_screenshot` temp leak**: leftover `studiolink_capture_*.png` files
+  from failed cleanups are reaped (older than 1h) at capture time. Reaper is
+  unit-tested with a parameterized cutoff.
+- **`memory_scan` false negatives**: cleanup-library detection (Maid/Janitor/
+  Trove) now requires a `.`/`:` after the name, so a bare mention in a comment
+  doesn't count as cleanup and mask a real leak.
+
+### Still deferred (low value / behavior risk)
+- `input_simulate` `PlayHelpers.requireContext` (would reject Edit-mode use);
+  `ScriptPatch` loadstring syntax check (already fails safe with a warning).
+
+### Tests at this version: 53 Rust + 3 Lune suites + parse check; clippy + fmt clean.
+
 ## [v0.7.3] — Second audit pass: plugin logic bugs + input validation
 
 Follow-up audit (Rust + Luau split across parallel reviewers, then each finding

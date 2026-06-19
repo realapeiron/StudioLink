@@ -14,6 +14,14 @@ local snapshots: { [string]: any } = {}
 local snapshotCounter = 0
 
 function PlaceDiff.take(args: { [string]: any }): (boolean, any, string?)
+	-- Namespace snapshots per caller so two chats on one Studio session don't
+	-- see or evict each other's snapshots.
+	local callerId = args.__caller_id or "default"
+	local mySnaps = snapshots[callerId]
+	if not mySnaps then
+		mySnaps = {}
+		snapshots[callerId] = mySnaps
+	end
 	snapshotCounter += 1
 	-- os.time() alone collides when two snapshots land in the same second
 	-- (silent overwrite); the counter makes the default name unique.
@@ -36,22 +44,22 @@ function PlaceDiff.take(args: { [string]: any }): (boolean, any, string?)
 		table.insert(tree, TreeWalker.serializeTree(svc, 30))
 	end
 
-	snapshots[name] = {
+	mySnaps[name] = {
 		name = name,
 		timestamp = os.time(),
 		seq = snapshotCounter,
 		tree = tree,
 	}
 
-	-- Evict the oldest snapshots when over the cap (by insertion order).
+	-- Evict the oldest snapshots for this caller when over the cap.
 	local count = 0
-	for _ in pairs(snapshots) do
+	for _ in pairs(mySnaps) do
 		count += 1
 	end
 	while count > MAX_SNAPSHOTS do
 		local oldestName: string? = nil
 		local oldestSeq = math.huge
-		for n, d in pairs(snapshots) do
+		for n, d in pairs(mySnaps) do
 			if (d.seq or 0) < oldestSeq then
 				oldestSeq = d.seq or 0
 				oldestName = n
@@ -60,7 +68,7 @@ function PlaceDiff.take(args: { [string]: any }): (boolean, any, string?)
 		if oldestName == nil then
 			break
 		end
-		snapshots[oldestName] = nil
+		mySnaps[oldestName] = nil
 		count -= 1
 	end
 
@@ -97,18 +105,20 @@ local function flattenTree(tree: { any }, prefix: string?): { [string]: any }
 end
 
 function PlaceDiff.compare(args: { [string]: any }): (boolean, any, string?)
+	local callerId = args.__caller_id or "default"
+	local mySnaps = snapshots[callerId] or {}
 	local nameA = args.snapshotA
 	local nameB = args.snapshotB
 
-	if not snapshots[nameA] then
+	if not mySnaps[nameA] then
 		return false, nil, "Snapshot '" .. nameA .. "' not found"
 	end
-	if not snapshots[nameB] then
+	if not mySnaps[nameB] then
 		return false, nil, "Snapshot '" .. nameB .. "' not found"
 	end
 
-	local flatA = flattenTree(snapshots[nameA].tree)
-	local flatB = flattenTree(snapshots[nameB].tree)
+	local flatA = flattenTree(mySnaps[nameA].tree)
+	local flatB = flattenTree(mySnaps[nameB].tree)
 
 	local added: { string } = {}
 	local removed: { string } = {}
@@ -160,8 +170,10 @@ function PlaceDiff.compare(args: { [string]: any }): (boolean, any, string?)
 end
 
 function PlaceDiff.list(args: { [string]: any }?): (boolean, any, string?)
+	local callerId = if type(args) == "table" then args.__caller_id or "default" else "default"
+	local mySnaps = snapshots[callerId] or {}
 	local list = {}
-	for name, data in pairs(snapshots) do
+	for name, data in pairs(mySnaps) do
 		table.insert(list, {
 			name = name,
 			timestamp = data.timestamp,

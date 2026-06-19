@@ -5,9 +5,12 @@ local TreeWalker = require(script.Parent.Parent.Utils.TreeWalker)
 local TestMatch = require(script.Parent.Parent.Utils.TestMatch)
 
 local TestRunner = {}
-local lastResults: any = nil
+-- Keyed by __caller_id so concurrent chats on one Studio session keep separate
+-- last-run results.
+local lastResults: { [string]: any } = {}
 
 function TestRunner.run(args: { [string]: any }): (boolean, any, string?)
+	local callerId = args.__caller_id or "default"
 	local targetPath = args.path or ""
 	local results: { any } = {}
 	local passed = 0
@@ -72,7 +75,7 @@ function TestRunner.run(args: { [string]: any }): (boolean, any, string?)
 		end
 	end
 
-	lastResults = {
+	local summary = {
 		totalTests = passed + failed + errors,
 		passed = passed,
 		failed = failed,
@@ -80,8 +83,9 @@ function TestRunner.run(args: { [string]: any }): (boolean, any, string?)
 		results = results,
 		timestamp = os.time(),
 	}
+	lastResults[callerId] = summary
 
-	return true, lastResults, nil
+	return true, summary, nil
 end
 
 function TestRunner.create(args: { [string]: any }): (boolean, any, string?)
@@ -148,18 +152,20 @@ function TestRunner.create(args: { [string]: any }): (boolean, any, string?)
 end
 
 function TestRunner.report(args: { [string]: any }): (boolean, any, string?)
-	if not lastResults then
+	local callerId = args.__caller_id or "default"
+	local data = lastResults[callerId]
+	if not data then
 		return true, "No test results available. Run test_run first.", nil
 	end
 
 	local lines = { "=== StudioLink Test Report ===" }
 	table.insert(lines, string.format(
 		"Total: %d | Passed: %d | Failed: %d | Errors: %d",
-		lastResults.totalTests, lastResults.passed, lastResults.failed, lastResults.errors
+		data.totalTests, data.passed, data.failed, data.errors
 	))
 	table.insert(lines, "")
 
-	for _, result in ipairs(lastResults.results) do
+	for _, result in ipairs(data.results) do
 		local icon = if result.status == "PASS" then "[OK]"
 			elseif result.status == "FAIL" then "[FAIL]"
 			else "[ERR]"
