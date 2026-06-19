@@ -333,7 +333,7 @@ local SERVER_PORT = 34872
 local SERVER_URL = "http://127.0.0.1:" .. SERVER_PORT
 local POLL_INTERVAL = 0.5 -- seconds between poll retries on error
 local REGISTER_RETRY_INTERVAL = 3 -- seconds between registration retries
-local VERSION = "0.7.4"
+local VERSION = "0.7.5"
 
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)
@@ -454,7 +454,6 @@ Tools["ui_click"] = require(script.Parent.Tools.UiClick)
 Tools["ui_set_text"] = require(script.Parent.Tools.UiSetText)
 Tools["ui_get_state"] = require(script.Parent.Tools.UiGetState)
 Tools["input_simulate"] = require(script.Parent.Tools.InputSimulate)
-Tools["viewport_screenshot"] = require(script.Parent.Tools.ViewportScreenshot)
 
 -- Logs / errors (v0.5.0 / Faz 3)
 Tools["error_history"] = require(script.Parent.Tools.ErrorHistory)

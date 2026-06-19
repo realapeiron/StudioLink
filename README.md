@@ -2,7 +2,7 @@
 
 **Advanced Roblox Studio MCP Server — 65 tools for professional game development with AI, multi-chat capable**
 
-StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 65 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation, viewport screenshots), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
+StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 64 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
@@ -143,11 +143,6 @@ Roblox's official MCP server provides 6 basic tools. StudioLink gives you **65 t
 |------|-------------|
 | `vim_capability_test` | Probe VirtualInputManager methods (SendKeyEvent, etc.) to find which are callable in the current Studio context. Run in Edit AND during Play. |
 | `input_simulate` | Drive keyboard/mouse via VirtualInputManager. Action types: key, mouse_click, mouse_move, key_combo. Strategy: vim direct (auto). |
-
-### Viewport Screenshot (1 tool, v0.4.0, macOS)
-| Tool | Description |
-|------|-------------|
-| `viewport_screenshot` | Capture the Studio viewport via StudioService:TakeScreenshot() and return base64 PNG. macOS path resolution; pass override_dir elsewhere. 20MB cap. |
 
 ### Multi-Chat Routing (v0.6.0)
 

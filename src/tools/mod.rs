@@ -20,7 +20,6 @@ pub mod profiler;
 pub mod profiler_v2;
 pub mod publish;
 pub mod scenario;
-pub mod screenshot;
 pub mod script_patch;
 pub mod scripts;
 pub mod security;

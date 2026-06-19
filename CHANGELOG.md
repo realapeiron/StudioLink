@@ -2,6 +2,24 @@
 
 All notable changes to StudioLink. Format roughly follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [v0.7.5] — Remove the screenshot feature
+
+Removed `viewport_screenshot` entirely. The macOS `screencapture` path needs
+Screen Recording permission that can't be granted under the Claude Desktop
+sandbox (parent bundle lacks the entitlement). The in-engine alternative
+(`CaptureService:CaptureScreenshot` → `EditableImage:ReadPixelsBuffer`) works
+without permission but is capped at 1024×1024 and can't fit a frame in one
+~1 MB plugin POST without a chunked-transport protocol — not worth the
+complexity here. Cut cleanly rather than ship something half-working.
+
+### Removed
+- `viewport_screenshot` tool — Rust `tools::screenshot` (`screenshot.rs`),
+  plugin `ViewportScreenshot.luau`, the MCP tool definition + params struct in
+  `mcp.rs`, and the plugin register entry.
+- `base64` dependency (only the screenshot path used it).
+
+### Tools: 66 (was 67). 51 Rust tests; clippy + fmt clean; plugin parses clean.
+
 ## [v0.7.4] — Multi-chat state isolation + audit tail
 
 Closes the v0.7.x audit backlog.
