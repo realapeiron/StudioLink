@@ -21,9 +21,11 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		-- Also count cleanup patterns
 		for _ in source:gmatch(":Destroy%(") do disconnectCount += 1 end
 		for _ in source:gmatch("%.Destroying") do disconnectCount += 1 end
-		for _ in source:gmatch("Maid") do disconnectCount += 1 end
-		for _ in source:gmatch("Janitor") do disconnectCount += 1 end
-		for _ in source:gmatch("trove") do disconnectCount += 1 end
+		-- Require a `.`/`:` so a bare mention in a comment ("TODO: add Maid")
+		-- doesn't count as real cleanup and hide a genuine leak.
+		for _ in source:gmatch("Maid[%.:]") do disconnectCount += 1 end
+		for _ in source:gmatch("Janitor[%.:]") do disconnectCount += 1 end
+		for _ in source:gmatch("[Tt]rove[%.:]") do disconnectCount += 1 end
 
 		if connectCount > 0 and disconnectCount == 0 then
 			table.insert(issues, {
@@ -43,7 +45,7 @@ return function(args: { [string]: any }): (boolean, any, string?)
 		for _, pattern in ipairs(runServicePatterns) do
 			if source:find(pattern) then
 				local hasCleanup = source:find(":Disconnect") or source:find(":Destroy")
-					or source:find("Maid") or source:find("Janitor") or source:find("trove")
+					or source:find("Maid[%.:]") or source:find("Janitor[%.:]") or source:find("[Tt]rove[%.:]")
 				if not hasCleanup then
 					table.insert(issues, {
 						type = "RunService Leak",

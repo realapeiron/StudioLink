@@ -3,7 +3,7 @@ use serde_json::json;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 
 use crate::error::{Result, StudioLinkError};
@@ -14,6 +14,27 @@ use crate::state::AppState;
 // so a 15 MB raw → ~20 MB encoded. 20 MB cap was rejecting realistic captures
 // from high-DPI/external displays.
 const MAX_SIZE_BYTES: usize = 50 * 1024 * 1024;
+
+/// Best-effort reaper: delete `studiolink_capture_*.png` files in `dir` whose
+/// mtime is older than `cutoff`. Stops leftover temp files from accumulating
+/// when a previous cleanup failed. Silent — a capture must not fail on a reap
+/// error.
+fn reap_captures_older_than(dir: &std::path::Path, cutoff: SystemTime) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name.starts_with("studiolink_capture_") && name.ends_with(".png") {
+            if let Ok(modified) = entry.metadata().and_then(|m| m.modified()) {
+                if modified < cutoff {
+                    let _ = std::fs::remove_file(entry.path());
+                }
+            }
+        }
+    }
+}
 
 /// viewport_screenshot — Capture the full Studio window via macOS
 /// `screencapture` and return base64 PNG.
@@ -44,6 +65,12 @@ pub async fn viewport_screenshot(
             target_dir.display()
         )));
     }
+
+    // Reap leftover captures from prior failed cleanups (older than 1 hour).
+    let reap_cutoff = SystemTime::now()
+        .checked_sub(Duration::from_secs(3600))
+        .unwrap_or(UNIX_EPOCH);
+    reap_captures_older_than(&target_dir, reap_cutoff);
 
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -155,5 +182,24 @@ mod tests {
         .await
         .unwrap_err();
         assert!(matches!(err, StudioLinkError::ServerError(_)));
+    }
+
+    #[test]
+    fn reaper_removes_only_stale_captures() {
+        let dir = std::env::temp_dir().join(format!("sl_reap_test_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let cap = dir.join("studiolink_capture_123.png");
+        let other = dir.join("keepme.txt");
+        std::fs::write(&cap, b"x").unwrap();
+        std::fs::write(&other, b"y").unwrap();
+
+        // Cutoff in the future → every file counts as "older", but only the
+        // capture-named one must be reaped.
+        let future = SystemTime::now() + Duration::from_secs(3600);
+        reap_captures_older_than(&dir, future);
+
+        assert!(!cap.exists(), "stale capture should be removed");
+        assert!(other.exists(), "non-capture file must be kept");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
