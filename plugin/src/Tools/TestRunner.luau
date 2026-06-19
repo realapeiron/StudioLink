@@ -2,6 +2,7 @@
 -- TestRunner: Run and manage test suites
 
 local TreeWalker = require(script.Parent.Parent.Utils.TreeWalker)
+local TestMatch = require(script.Parent.Parent.Utils.TestMatch)
 
 local TestRunner = {}
 local lastResults: any = nil
@@ -18,8 +19,7 @@ function TestRunner.run(args: { [string]: any }): (boolean, any, string?)
 	local testScripts: { Instance } = {}
 
 	for _, scriptInstance in ipairs(scripts) do
-		local name = scriptInstance.Name:lower()
-		if name:find("%.spec$") or name:find("%.test$") or name:find("test") then
+		if TestMatch.isTestScriptName(scriptInstance.Name) then
 			if targetPath == "" or scriptInstance:GetFullName():find(targetPath) then
 				table.insert(testScripts, scriptInstance)
 			end
@@ -43,7 +43,7 @@ function TestRunner.run(args: { [string]: any }): (boolean, any, string?)
 			if requireOk and type(testModule) == "table" then
 				-- Run each test function
 				for testName, testFn in pairs(testModule) do
-					if type(testFn) == "function" and tostring(testName):find("test") then
+					if type(testFn) == "function" and TestMatch.isTestFunctionName(tostring(testName)) then
 						local runOk, runErr = pcall(testFn)
 						if runOk then
 							passed += 1

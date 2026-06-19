@@ -300,6 +300,9 @@ function InstanceTools.massSetProperty(args: { [string]: any }): (boolean, any, 
 	if not paths or not propName then
 		return false, nil, "Missing required parameters: paths, property"
 	end
+	if type(paths) ~= "table" then
+		return false, nil, "paths must be an array of instance paths"
+	end
 
 	local newVal = deserializeValue(value, valueType)
 	local updated = 0
@@ -363,11 +366,18 @@ function InstanceTools.createInstance(args: { [string]: any }): (boolean, any, s
 		return false, nil, "Failed to create instance: " .. tostring(instance)
 	end
 
-	-- Set properties if provided
+	-- Set properties if provided. Infer each property's type from the freshly
+	-- created instance and route through deserializeValue, so JSON-origin values
+	-- ({x,y,z}, "true", "Enum.Material.Plastic", …) are coerced the same way
+	-- set_property does — instead of being assigned raw and silently failing.
 	if properties and type(properties) == "table" then
 		for propName, propVal in pairs(properties) do
 			pcall(function()
-				(instance :: any)[propName] = propVal
+				local currentType = typeof((instance :: any)[propName])
+				if currentType == "EnumItem" then
+					currentType = "Enum"
+				end
+				;(instance :: any)[propName] = deserializeValue(propVal, currentType)
 			end)
 		end
 	end

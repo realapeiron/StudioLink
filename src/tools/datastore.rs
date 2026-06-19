@@ -75,6 +75,16 @@ pub async fn datastore_delete(
     .await
 }
 
+/// Clamp scan paging to safe bounds (Roblox caps DataStore page size at 100;
+/// max_pages is bounded so a huge value can't monopolize the extended-timeout
+/// slot under a long blocking scan).
+fn clamp_scan_params(page_size: Option<u32>, max_pages: Option<u32>) -> (u32, u32) {
+    (
+        page_size.unwrap_or(50).clamp(1, 100),
+        max_pages.unwrap_or(1).clamp(1, 20),
+    )
+}
+
 /// Tool 11: datastore_scan — Scan all keys in a DataStore
 pub async fn datastore_scan(
     state: &Arc<Mutex<AppState>>,
@@ -87,14 +97,15 @@ pub async fn datastore_scan(
             "store_name is required".into(),
         ));
     }
+    let (page_size, max_pages) = clamp_scan_params(page_size, max_pages);
     send_to_plugin(
         state,
         None,
         "datastore_scan",
         json!({
             "storeName": store_name,
-            "pageSize": page_size.unwrap_or(50),
-            "maxPages": max_pages.unwrap_or(1),
+            "pageSize": page_size,
+            "maxPages": max_pages,
         }),
         EXTENDED_TIMEOUT,
     )
@@ -145,5 +156,16 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[test]
+    fn scan_params_clamp_to_bounds() {
+        assert_eq!(clamp_scan_params(Some(500), Some(100)), (100, 20));
+        assert_eq!(clamp_scan_params(Some(0), Some(0)), (1, 1));
+    }
+
+    #[test]
+    fn scan_params_use_defaults_when_none() {
+        assert_eq!(clamp_scan_params(None, None), (50, 1));
     }
 }

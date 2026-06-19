@@ -6,6 +6,21 @@ local HttpService = game:GetService("HttpService")
 
 local DataStoreDebug = {}
 
+-- Roblox rate-limits DataStore calls; when the per-minute budget for a request
+-- type hits zero the next call blocks/throttles. Check first and return a clear
+-- message instead of a confusing deep failure. pcall-guarded so a missing API
+-- never breaks the tool — if the budget can't be read, we let the call proceed.
+local function ensureBudget(requestType: Enum.DataStoreRequestType): (boolean, string?)
+	local ok, budget = pcall(function()
+		return DataStoreService:GetRequestBudgetForRequestType(requestType)
+	end)
+	if ok and type(budget) == "number" and budget < 1 then
+		return false,
+			"DataStore request budget exhausted — wait a few seconds and retry (Roblox rate-limits DataStore calls)."
+	end
+	return true, nil
+end
+
 function DataStoreDebug.list(args: { [string]: any }): (boolean, any, string?)
 	local ok, result = pcall(function()
 		local stores = DataStoreService:ListDataStoresAsync()
@@ -37,6 +52,11 @@ function DataStoreDebug.get(args: { [string]: any }): (boolean, any, string?)
 		return false, nil, "storeName and key are required"
 	end
 
+	local budgetOk, budgetErr = ensureBudget(Enum.DataStoreRequestType.GetAsync)
+	if not budgetOk then
+		return false, nil, budgetErr
+	end
+
 	local ok, result = pcall(function()
 		local store = DataStoreService:GetDataStore(storeName)
 		return store:GetAsync(key)
@@ -58,6 +78,11 @@ function DataStoreDebug.set(args: { [string]: any }): (boolean, any, string?)
 		return false, nil, "storeName and key are required"
 	end
 
+	local budgetOk, budgetErr = ensureBudget(Enum.DataStoreRequestType.SetIncrementAsync)
+	if not budgetOk then
+		return false, nil, budgetErr
+	end
+
 	local ok, result = pcall(function()
 		local store = DataStoreService:GetDataStore(storeName)
 		store:SetAsync(key, value)
@@ -77,6 +102,11 @@ function DataStoreDebug.delete(args: { [string]: any }): (boolean, any, string?)
 
 	if not storeName or not key then
 		return false, nil, "storeName and key are required"
+	end
+
+	local budgetOk, budgetErr = ensureBudget(Enum.DataStoreRequestType.SetIncrementAsync)
+	if not budgetOk then
+		return false, nil, budgetErr
 	end
 
 	local ok, result = pcall(function()

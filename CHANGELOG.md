@@ -57,13 +57,41 @@ source file.
   truthy, so an empty key reached `GetDataStore("")`. All now reject empty input
   with a clear `InvalidArguments` error.
 
-### Added (testing)
-- Lune unit-test harness: `plugin/tests/NumCompare.test.luau`,
-  `RemoteValidation.test.luau`, and `parse_check.luau` (syntax check over all 51
-  plugin source files). Run with `lune run plugin/tests/<file>`.
-- 15 Rust validation tests (`datastore`, `scripts`, `instance`).
+### Fixed (MEDIUM follow-up)
+- **`create_instance` silently dropped typed properties**: `properties` were
+  assigned raw with no `deserializeValue`, so `{Size={1,2,3}}` / `{Anchored="true"}`
+  no-op'd while still reporting `created=true`. Each property's type is now
+  inferred from the new instance and coerced like `set_property`.
+- **`mass_set_property` threw on a non-table `paths`**: only a nil-check guarded
+  the `ipairs`. Now type-checked.
+- **`test_run` matched any name containing "test"**: pulled in `LatestConfig`,
+  `ContestManager`, `TestUtilities` (running their top-level side effects) and ran
+  any function with "test" anywhere in the name. Now `.spec`/`.test` suffix and a
+  `test*` prefix only. Extracted to `Utils/TestMatch.luau` + unit-tested.
+- **`snapshot_take` collided and leaked**: default names used `os.time()` (second
+  resolution → same-second overwrite); now counter-suffixed. Snapshots (full
+  serialized trees) are capped at 10 with oldest-eviction.
+- **`profile_start` was a no-op**: fetched `Stats` and discarded it. Now captures
+  a start `InstanceCount` so `profile_stop` reports a real interval delta, and the
+  response is honest that it's engine Stats, not a per-script CPU profile (use
+  `microprofiler_capture` for that).
+- **`datastore_scan` paging unbounded** (Rust): `page_size`/`max_pages` now clamp
+  to 1–100 / 1–20.
+- **DataStore tools ignored request budget**: `datastore_get`/`set`/`delete` now
+  check `GetRequestBudgetForRequestType` and return a clear throttle message
+  instead of failing deep inside the call.
 
-### Tests at this version: 48 Rust + 27 Lune assertions; clippy + fmt clean.
+### Added (testing)
+- Lune unit-test harness: `plugin/tests/{NumCompare,RemoteValidation,TestMatch}.test.luau`
+  + `parse_check.luau` (syntax check over all 52 plugin source files). Run with
+  `lune run plugin/tests/<file>`.
+- 17 Rust validation/logic tests (`datastore`, `scripts`, `instance`).
+
+### Known still-open: full multi-chat session-keying of module-level tool state
+(Profiler/TestRunner/PlaceDiff/SecurityAudit) is architectural and deferred; some
+LOW items (screenshot temp cleanup, MemoryLeakScan heuristic scoping) remain.
+
+### Tests at this version: 50 Rust + 3 Lune suites + parse check; clippy + fmt clean.
 
 ## [v0.7.2] — Audit-driven cleanup
 

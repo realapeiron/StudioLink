@@ -5,24 +5,23 @@ local Profiler = {}
 local lastProfileData: any = nil
 
 function Profiler.start(args: { [string]: any }): (boolean, any, string?)
-	local frequency = args.frequency or 1000
-
-	-- Use ScriptContext to access profiling
+	-- This is not a per-script CPU profiler (that needs ScriptProfiler /
+	-- MicroProfiler — see microprofiler_capture). It snapshots engine Stats at
+	-- start so profile_stop can report what changed over the interval.
 	local ok, err = pcall(function()
-		-- ScriptProfiler is a Studio-only feature
-		-- We use debug.profilebegin/profileend and Stats service
 		local Stats = game:GetService("Stats")
 		lastProfileData = {
 			startTime = os.clock(),
-			frequency = frequency,
+			startInstanceCount = Stats.InstanceCount,
 			running = true,
 		}
 	end)
 
 	if ok then
 		return true, {
-			message = "Profiling started at " .. frequency .. " Hz",
-			note = "Run your game logic, then call profile_stop to collect results",
+			message = "Stats capture started",
+			note = "Engine Stats over the interval — call profile_stop to read the delta. "
+				.. "For a per-script CPU profile use microprofiler_capture.",
 		}, nil
 	else
 		return false, nil, "Failed to start profiler: " .. tostring(err)
@@ -38,15 +37,20 @@ function Profiler.stop(args: { [string]: any }): (boolean, any, string?)
 	lastProfileData.running = false
 	lastProfileData.duration = duration
 
-	-- Collect Stats data
+	-- Report the interval: InstanceCount as a start→end delta, the rest as
+	-- instantaneous end-of-interval readings (Stats exposes no history).
 	local Stats = game:GetService("Stats")
+	local endInstanceCount = Stats.InstanceCount
 	local statsData = {
 		duration = math.floor(duration * 1000) / 1000,
-		instanceCount = Stats.InstanceCount,
-		heartbeatTime = Stats.HeartbeatTimeMs,
-		physicsStepTime = Stats.PhysicsStepTimeMs,
+		instanceCountStart = lastProfileData.startInstanceCount,
+		instanceCountEnd = endInstanceCount,
+		instanceCountDelta = endInstanceCount - (lastProfileData.startInstanceCount or endInstanceCount),
+		heartbeatTimeMs = Stats.HeartbeatTimeMs,
+		physicsStepTimeMs = Stats.PhysicsStepTimeMs,
 		movingPrimitivesCount = Stats.MovingPrimitivesCount,
 		primitivesCount = Stats.PrimitivesCount,
+		note = "instanceCountDelta spans the interval; heartbeat/physics are end-of-interval snapshots.",
 	}
 
 	return true, statsData, nil

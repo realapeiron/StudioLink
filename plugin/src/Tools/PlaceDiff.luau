@@ -6,11 +6,18 @@ local HttpService = game:GetService("HttpService")
 
 local PlaceDiff = {}
 
--- In-memory snapshot storage
+-- In-memory snapshot storage. Each snapshot holds a full serialized tree
+-- (including every script's Source), so the count is capped to avoid unbounded
+-- growth across repeated takes.
+local MAX_SNAPSHOTS = 10
 local snapshots: { [string]: any } = {}
+local snapshotCounter = 0
 
 function PlaceDiff.take(args: { [string]: any }): (boolean, any, string?)
-	local name = args.name or ("snapshot_" .. os.time())
+	snapshotCounter += 1
+	-- os.time() alone collides when two snapshots land in the same second
+	-- (silent overwrite); the counter makes the default name unique.
+	local name = args.name or ("snapshot_" .. os.time() .. "_" .. snapshotCounter)
 
 	local services = {
 		game:GetService("Workspace"),
@@ -32,8 +39,30 @@ function PlaceDiff.take(args: { [string]: any }): (boolean, any, string?)
 	snapshots[name] = {
 		name = name,
 		timestamp = os.time(),
+		seq = snapshotCounter,
 		tree = tree,
 	}
+
+	-- Evict the oldest snapshots when over the cap (by insertion order).
+	local count = 0
+	for _ in pairs(snapshots) do
+		count += 1
+	end
+	while count > MAX_SNAPSHOTS do
+		local oldestName: string? = nil
+		local oldestSeq = math.huge
+		for n, d in pairs(snapshots) do
+			if (d.seq or 0) < oldestSeq then
+				oldestSeq = d.seq or 0
+				oldestName = n
+			end
+		end
+		if oldestName == nil then
+			break
+		end
+		snapshots[oldestName] = nil
+		count -= 1
+	end
 
 	return true, {
 		message = "Snapshot '" .. name .. "' saved",
