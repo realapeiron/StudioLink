@@ -2,7 +2,7 @@
 name = "studiolink"
 version = "0.8.0"
 edition = "2021"
-description = "Advanced Roblox Studio MCP Server — 79 tools for professional game development with multi-chat session affinity"
+description = "Advanced Roblox Studio MCP Server — 90 tools for professional game development with multi-chat session affinity"
 license = "MIT"
 repository = "https://github.com/realapeiron/StudioLink"
 keywords = ["roblox", "mcp", "studio", "gamedev"]

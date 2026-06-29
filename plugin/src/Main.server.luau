@@ -419,6 +419,11 @@ Tools["get_file_tree"] = function(args) return InstanceTools.getFileTree(args) e
 Tools["get_instance_properties"] = function(args) return InstanceTools.getProperties(args) end
 Tools["set_property"] = function(args) return InstanceTools.setProperty(args) end
 Tools["mass_set_property"] = function(args) return InstanceTools.massSetProperty(args) end
+
+-- Mass operations (v0.8.0)
+Tools["clone_object"] = function(args) return InstanceTools.cloneObject(args) end
+Tools["mass_get_property"] = function(args) return InstanceTools.massGetProperty(args) end
+Tools["smart_duplicate"] = function(args) return InstanceTools.smartDuplicate(args) end
 Tools["create_instance"] = function(args) return InstanceTools.createInstance(args) end
 Tools["delete_instance"] = function(args) return InstanceTools.deleteInstance(args) end
 

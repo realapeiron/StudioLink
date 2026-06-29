@@ -36,7 +36,19 @@ official Roblox Studio MCP. 12 new tools (66 → 79).
 - Added `base64` + `png` crates (PNG encoded server-side; plugin ships raw RGBA,
   zero plugin-side compression).
 
-### Tools: 79 (was 66).
+### Added — Discovery (7 tools)
+- `inspect_instance` (class + attributes + tags + child summary in one call),
+  `get_descendants` (recursive, optional IsA class filter), `get_selection`,
+  `search_by_property`, `get_services`, `get_place_info`, `get_class_info`.
+
+### Added — Refactor & mass ops (4 tools)
+- `find_and_replace_in_scripts` — project-wide, literal or Lua-pattern, `dry_run`
+  preview, `path` scoping, `max_replacements` cap. Core logic in
+  `Utils/FindReplace.luau`, unit-tested.
+- `clone_object`, `mass_get_property`, `smart_duplicate` (per-copy name pattern
+  `{n}` + cumulative position offset).
+
+### Tools: 90 (was 66).
 
 ## [v0.7.5] — Remove the screenshot feature
 

@@ -540,6 +540,36 @@ pub struct FindReplaceParams {
     pub max_replacements: Option<u32>,
 }
 
+// --- Mass operations (v0.8.0) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct CloneObjectParams {
+    /// Instance path to clone.
+    pub path: String,
+    /// Optional target parent path (default: same parent as the source).
+    pub target_parent: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct MassGetPropertyParams {
+    /// Instance paths to read.
+    pub paths: Vec<String>,
+    /// Property name to read on each.
+    pub property_name: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SmartDuplicateParams {
+    /// Instance path to duplicate.
+    pub path: String,
+    /// Number of copies (>= 1).
+    pub count: u32,
+    /// Optional name pattern; "{n}" is replaced with the copy index.
+    pub name_pattern: Option<String>,
+    /// Optional cumulative position offset [x,y,z] applied per copy.
+    pub position_offset: Option<Vec<f64>>,
+}
+
 // --- Logs / Errors ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -1713,6 +1743,51 @@ impl StudioLinkMcp {
             p.dry_run,
             p.path.as_deref(),
             p.max_replacements,
+        )
+        .await
+        {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // MASS OPERATIONS (v0.8.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Deep-copy an instance (and its descendants) under a parent (default: the source's own parent)."
+    )]
+    async fn clone_object(&self, params: Parameters<CloneObjectParams>) -> String {
+        let p = params.0;
+        match tools::mass::clone_object(&self.state, &p.path, p.target_parent.as_deref()).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Read one property across many instances in a single call. Returns a path -> value map."
+    )]
+    async fn mass_get_property(&self, params: Parameters<MassGetPropertyParams>) -> String {
+        let p = params.0;
+        match tools::mass::mass_get_property(&self.state, p.paths, &p.property_name).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Duplicate an instance `count` times with an optional name pattern ('{n}' -> copy index) and a cumulative position offset [x,y,z] per copy."
+    )]
+    async fn smart_duplicate(&self, params: Parameters<SmartDuplicateParams>) -> String {
+        let p = params.0;
+        match tools::mass::smart_duplicate(
+            &self.state,
+            &p.path,
+            p.count,
+            p.name_pattern.as_deref(),
+            p.position_offset,
         )
         .await
         {

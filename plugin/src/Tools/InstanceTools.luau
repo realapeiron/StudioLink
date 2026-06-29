@@ -774,4 +774,100 @@ function InstanceTools.getClassInfo(args: { [string]: any }): (boolean, any, str
 	return true, { className = className, valid = true, isA = isA }, nil
 end
 
+-- ───────────────────────── Mass operations (v0.8.0) ─────────────────────────
+
+function InstanceTools.cloneObject(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local parent: Instance? = instance.Parent
+	if type(args.targetParent) == "string" and args.targetParent ~= "" then
+		parent = resolvePath(args.targetParent)
+		if not parent then
+			return false, nil, "Target parent not found: " .. args.targetParent
+		end
+	end
+	local ok, clone = pcall(function()
+		local c = instance:Clone()
+		c.Parent = parent
+		return c
+	end)
+	if not ok or not clone then
+		return false, nil, "Clone failed: " .. tostring(clone)
+	end
+	return true, { source = path, clone = clone:GetFullName() }, nil
+end
+
+function InstanceTools.massGetProperty(args: { [string]: any }): (boolean, any, string?)
+	local paths = args.paths
+	local propName = args.propertyName
+	if type(paths) ~= "table" then
+		return false, nil, "paths must be an array of instance paths"
+	end
+	if type(propName) ~= "string" or propName == "" then
+		return false, nil, "propertyName is required"
+	end
+	local values: { [string]: any } = {}
+	for _, path in ipairs(paths) do
+		local instance = resolvePath(path)
+		if instance then
+			local ok, val = pcall(function()
+				return (instance :: any)[propName]
+			end)
+			values[path] = if ok then tostring(val) else "<error reading property>"
+		else
+			values[path] = "<not found>"
+		end
+	end
+	return true, { propertyName = propName, values = values }, nil
+end
+
+function InstanceTools.smartDuplicate(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	local count = args.count
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	if type(count) ~= "number" or count < 1 then
+		return false, nil, "count must be >= 1"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local namePattern = if type(args.namePattern) == "string" then args.namePattern else nil
+	local offset = args.positionOffset
+	local hasOffset = type(offset) == "table" and #offset >= 3
+	local created: { string } = {}
+	for i = 1, count do
+		local ok, clone = pcall(function()
+			local c = instance:Clone()
+			if namePattern then
+				c.Name = (namePattern:gsub("{n}", tostring(i)))
+			end
+			if hasOffset then
+				local off = Vector3.new(offset[1] * i, offset[2] * i, offset[3] * i)
+				if c:IsA("BasePart") then
+					(c :: BasePart).Position = (instance :: BasePart).Position + off
+				elseif c:IsA("Model") then
+					pcall(function()
+						(c :: Model):PivotTo((instance :: Model):GetPivot() * CFrame.new(off))
+					end)
+				end
+			end
+			c.Parent = instance.Parent
+			return c
+		end)
+		if ok and clone then
+			table.insert(created, clone:GetFullName())
+		end
+	end
+	return true, { source = path, count = #created, created = created }, nil
+end
+
 return InstanceTools
