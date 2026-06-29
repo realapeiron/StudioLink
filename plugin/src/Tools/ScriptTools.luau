@@ -5,6 +5,7 @@ local Serializer = require(script.Parent.Parent.Utils.Serializer)
 local TreeWalker = require(script.Parent.Parent.Utils.TreeWalker)
 local PathResolver = require(script.Parent.Parent.Utils.PathResolver)
 local LineEdit = require(script.Parent.Parent.Utils.LineEdit)
+local FindReplace = require(script.Parent.Parent.Utils.FindReplace)
 
 local ScriptTools = {}
 
@@ -330,6 +331,50 @@ function ScriptTools.deleteScriptLines(args: { [string]: any }): (boolean, any, 
 		return false, nil, wErr
 	end
 	return true, { path = args.path, deleted = true }, nil
+end
+
+function ScriptTools.findAndReplaceInScripts(args: { [string]: any }): (boolean, any, string?)
+	local pattern = args.pattern
+	if type(pattern) ~= "string" or pattern == "" then
+		return false, nil, "pattern is required"
+	end
+	if type(args.replacement) ~= "string" then
+		return false, nil, "replacement is required (string)"
+	end
+	local usePattern = args.usePattern == true
+	local dryRun = args.dryRun == true
+	local maxReplacements = if type(args.maxReplacements) == "number" then args.maxReplacements else 1000
+	local pathFilter = if type(args.path) == "string" and args.path ~= "" then args.path else nil
+
+	local changes: { any } = {}
+	local total = 0
+	for _, scriptInstance in ipairs(TreeWalker.collectScripts()) do
+		if pathFilter and not scriptInstance:GetFullName():find(pathFilter, 1, true) then
+			continue
+		end
+		local ok, source = pcall(function()
+			return (scriptInstance :: any).Source
+		end)
+		if not ok or type(source) ~= "string" then
+			continue
+		end
+		local newSource, count = FindReplace.replaceInSource(source, pattern, args.replacement, usePattern)
+		if count > 0 then
+			total += count
+			table.insert(changes, { path = scriptInstance:GetFullName(), replacements = count })
+			if not dryRun then
+				pcall(function()
+					(scriptInstance :: any).Source = newSource
+				end)
+			end
+			if total >= maxReplacements then
+				break
+			end
+		end
+	end
+	return true,
+		{ dryRun = dryRun, totalReplacements = total, scriptsAffected = #changes, changes = changes },
+		nil
 end
 
 return ScriptTools

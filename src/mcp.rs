@@ -522,6 +522,24 @@ pub struct GetClassInfoParams {
     pub class_name: String,
 }
 
+// --- Find & Replace (v0.8.0) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct FindReplaceParams {
+    /// Text (or Lua pattern, if use_pattern) to find.
+    pub pattern: String,
+    /// Replacement text.
+    pub replacement: String,
+    /// Treat `pattern` as a Lua pattern (enables %d, captures %1, …). Default false.
+    pub use_pattern: Option<bool>,
+    /// Preview only — count matches without writing. Default false.
+    pub dry_run: Option<bool>,
+    /// Optional scope: only scripts whose full name contains this substring.
+    pub path: Option<String>,
+    /// Cap total replacements (default 1000).
+    pub max_replacements: Option<u32>,
+}
+
 // --- Logs / Errors ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -1677,6 +1695,27 @@ impl StudioLinkMcp {
     )]
     async fn get_class_info(&self, params: Parameters<GetClassInfoParams>) -> String {
         match tools::discovery::get_class_info(&self.state, &params.0.class_name).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Project-wide find/replace across all script sources. Literal by default; use_pattern enables Lua patterns (captures via %1). dry_run previews without writing. path scopes by full-name substring. max_replacements caps it (default 1000)."
+    )]
+    async fn find_and_replace_in_scripts(&self, params: Parameters<FindReplaceParams>) -> String {
+        let p = params.0;
+        match tools::scripts::find_and_replace_in_scripts(
+            &self.state,
+            &p.pattern,
+            &p.replacement,
+            p.use_pattern,
+            p.dry_run,
+            p.path.as_deref(),
+            p.max_replacements,
+        )
+        .await
+        {
             Ok(r) => ok_text(r),
             Err(e) => err_text(e),
         }

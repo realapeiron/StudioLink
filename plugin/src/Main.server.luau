@@ -452,6 +452,7 @@ Tools["search_objects"] = function(args) return ScriptTools.searchObjects(args) 
 Tools["edit_script_lines"] = function(args) return ScriptTools.editScriptLines(args) end
 Tools["insert_script_lines"] = function(args) return ScriptTools.insertScriptLines(args) end
 Tools["delete_script_lines"] = function(args) return ScriptTools.deleteScriptLines(args) end
+Tools["find_and_replace_in_scripts"] = function(args) return ScriptTools.findAndReplaceInScripts(args) end
 
 -- Undo/Redo tools (Faz 7)
 local UndoRedo = require(script.Parent.Tools.UndoRedo)

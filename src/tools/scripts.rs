@@ -154,6 +154,41 @@ pub async fn delete_script_lines(
     .await
 }
 
+/// find_and_replace_in_scripts — project-wide find/replace across all scripts.
+/// Literal by default; `use_pattern` enables Lua patterns. `dry_run` previews
+/// without writing. `path` scopes by full-name substring.
+#[allow(clippy::too_many_arguments)]
+pub async fn find_and_replace_in_scripts(
+    state: &Arc<Mutex<AppState>>,
+    pattern: &str,
+    replacement: &str,
+    use_pattern: Option<bool>,
+    dry_run: Option<bool>,
+    path: Option<&str>,
+    max_replacements: Option<u32>,
+) -> Result<serde_json::Value> {
+    if pattern.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "pattern is required".into(),
+        ));
+    }
+    send_to_plugin(
+        state,
+        None,
+        "find_and_replace_in_scripts",
+        json!({
+            "pattern": pattern,
+            "replacement": replacement,
+            "usePattern": use_pattern.unwrap_or(false),
+            "dryRun": dry_run.unwrap_or(false),
+            "path": path,
+            "maxReplacements": max_replacements.unwrap_or(1000),
+        }),
+        EXTENDED_TIMEOUT,
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,6 +196,14 @@ mod tests {
 
     fn make_state() -> Arc<Mutex<AppState>> {
         AppState::new().0
+    }
+
+    #[tokio::test]
+    async fn find_replace_rejects_empty_pattern() {
+        let err = find_and_replace_in_scripts(&make_state(), "", "x", None, None, None, None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
     }
 
     #[tokio::test]
