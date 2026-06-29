@@ -85,6 +85,75 @@ pub async fn search_objects(
     .await
 }
 
+// ───────────────────────── Surgical script editing (v0.8.0) ─────────────────────────
+
+/// edit_script_lines — exact-text replace in a script's source (optional
+/// start_line anchor to disambiguate). An Edit-tool for live Studio scripts.
+pub async fn edit_script_lines(
+    state: &Arc<Mutex<AppState>>,
+    path: &str,
+    old_string: &str,
+    new_string: &str,
+    start_line: Option<u32>,
+) -> Result<serde_json::Value> {
+    if path.is_empty() {
+        return Err(StudioLinkError::InvalidArguments("path is required".into()));
+    }
+    if old_string.is_empty() {
+        return Err(StudioLinkError::InvalidArguments(
+            "old_string is required".into(),
+        ));
+    }
+    send_to_plugin(
+        state,
+        None,
+        "edit_script_lines",
+        json!({ "path": path, "old_string": old_string, "new_string": new_string, "start_line": start_line }),
+        DEFAULT_TIMEOUT,
+    )
+    .await
+}
+
+/// insert_script_lines — insert content after a line (0 = before the first line).
+pub async fn insert_script_lines(
+    state: &Arc<Mutex<AppState>>,
+    path: &str,
+    after_line: u32,
+    content: &str,
+) -> Result<serde_json::Value> {
+    if path.is_empty() {
+        return Err(StudioLinkError::InvalidArguments("path is required".into()));
+    }
+    send_to_plugin(
+        state,
+        None,
+        "insert_script_lines",
+        json!({ "path": path, "after_line": after_line, "content": content }),
+        DEFAULT_TIMEOUT,
+    )
+    .await
+}
+
+/// delete_script_lines — delete lines start_line..end_line (1-indexed inclusive).
+pub async fn delete_script_lines(
+    state: &Arc<Mutex<AppState>>,
+    path: &str,
+    start_line: u32,
+    end_line: u32,
+) -> Result<serde_json::Value> {
+    if path.is_empty() {
+        return Err(StudioLinkError::InvalidArguments("path is required".into()));
+    }
+    send_to_plugin(
+        state,
+        None,
+        "delete_script_lines",
+        json!({ "path": path, "start_line": start_line, "end_line": end_line }),
+        DEFAULT_TIMEOUT,
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,6 +161,38 @@ mod tests {
 
     fn make_state() -> Arc<Mutex<AppState>> {
         AppState::new().0
+    }
+
+    #[tokio::test]
+    async fn edit_lines_rejects_empty_path() {
+        let err = edit_script_lines(&make_state(), "", "a", "b", None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn edit_lines_rejects_empty_old_string() {
+        let err = edit_script_lines(&make_state(), "Script", "", "b", None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn insert_lines_rejects_empty_path() {
+        let err = insert_script_lines(&make_state(), "", 0, "x")
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
+    }
+
+    #[tokio::test]
+    async fn delete_lines_rejects_empty_path() {
+        let err = delete_script_lines(&make_state(), "", 1, 2)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, StudioLinkError::InvalidArguments(_)));
     }
 
     #[tokio::test]

@@ -2,6 +2,42 @@
 
 All notable changes to StudioLink. Format roughly follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [v0.8.0] — Viewport capture + attributes/tags + surgical script editing
+
+Feature update from a gap analysis against `boshyxd/robloxstudio-mcp` and the
+official Roblox Studio MCP. 12 new tools (66 → 79).
+
+### Added — Viewport capture (1 tool)
+- **`viewport_capture`** — capture the Studio viewport as a PNG, returned as an
+  MCP **image** (the model actually sees it). Fully in-engine:
+  `CaptureService:CaptureScreenshot` → `EditableImage` → tiled `ReadPixelsBuffer`
+  → base64 RGBA → server-side Rust PNG encode. **No OS Screen Recording
+  permission** (unlike the `screencapture` path removed in v0.7.5, which was dead
+  under the Claude Desktop sandbox). Edit mode, native resolution; requires Game
+  Settings > Security > "Allow Mesh / Image APIs". The plugin posts multi-MB RGBA,
+  so the server body limit was raised to 64 MB (no chunking needed).
+
+### Added — Attributes & Tags (8 tools)
+- `get_attributes`, `set_attribute`, `delete_attribute`, `bulk_set_attributes` —
+  typed values reuse the existing `deserializeValue` coercion (Vector3/Color3/…).
+- `get_tags`, `add_tag`, `remove_tag`, `get_tagged` — CollectionService.
+
+### Added — Surgical script editing (3 tools)
+- `edit_script_lines` — exact-text replace with an optional `start_line` anchor
+  (an Edit-tool for live scripts; far cheaper than rewriting via
+  `set_script_source`).
+- `insert_script_lines` — insert after a line (`after_line=0` = before line 1).
+- `delete_script_lines` — delete `start_line..end_line` (1-indexed inclusive).
+- Pure line logic extracted to `Utils/LineEdit.luau`, unit-tested.
+
+### Testing / deps
+- New tests: Rust `rgba_to_png` + `attributes` + script-line validation (62 Rust
+  tests); Lune `Base64` (RFC 4648 vectors) + `LineEdit`.
+- Added `base64` + `png` crates (PNG encoded server-side; plugin ships raw RGBA,
+  zero plugin-side compression).
+
+### Tools: 79 (was 66).
+
 ## [v0.7.5] — Remove the screenshot feature
 
 Removed `viewport_screenshot` entirely. The macOS `screencapture` path needs

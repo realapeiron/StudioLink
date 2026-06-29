@@ -40,6 +40,9 @@ pub fn create_router(state: SharedState, _global_notify_rx: watch::Receiver<bool
         // Lets us verify whether the MCP client is shipping session_id.
         .route("/debug/routing", get(handle_debug_routing))
         .layer(CorsLayer::permissive())
+        // The plugin POSTs viewport_capture RGBA (multi-MB base64) to /response;
+        // axum's default 2 MB body limit would reject it.
+        .layer(axum::extract::DefaultBodyLimit::max(64 * 1024 * 1024))
         .with_state(state)
 }
 

@@ -1,8 +1,8 @@
 [package]
 name = "studiolink"
-version = "0.7.5"
+version = "0.8.0"
 edition = "2021"
-description = "Advanced Roblox Studio MCP Server — 66 tools for professional game development with multi-chat session affinity"
+description = "Advanced Roblox Studio MCP Server — 79 tools for professional game development with multi-chat session affinity"
 license = "MIT"
 repository = "https://github.com/realapeiron/StudioLink"
 keywords = ["roblox", "mcp", "studio", "gamedev"]
@@ -37,3 +37,5 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 color-eyre = "0.6"
 clap = { version = "4", features = ["derive"] }
+base64 = "0.22"
+png = "0.17"

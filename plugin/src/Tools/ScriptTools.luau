@@ -4,6 +4,7 @@
 local Serializer = require(script.Parent.Parent.Utils.Serializer)
 local TreeWalker = require(script.Parent.Parent.Utils.TreeWalker)
 local PathResolver = require(script.Parent.Parent.Utils.PathResolver)
+local LineEdit = require(script.Parent.Parent.Utils.LineEdit)
 
 local ScriptTools = {}
 
@@ -243,6 +244,92 @@ function ScriptTools.searchObjects(args: { [string]: any }): (boolean, any, stri
 		results = results,
 		truncated = #results >= maxResults,
 	}, nil
+end
+
+-- ───────────────────────── Surgical script editing (v0.8.0) ─────────────────────────
+
+local function readSource(path: any): (Instance?, string?, string?)
+	if type(path) ~= "string" or path == "" then
+		return nil, nil, "path is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return nil, nil, "Script not found: " .. path
+	end
+	local source: string? = nil
+	local ok = pcall(function()
+		source = (instance :: any).Source
+	end)
+	if not ok or source == nil then
+		return nil, nil, "could not read .Source (is '" .. path .. "' a Script/LocalScript/ModuleScript?)"
+	end
+	return instance, source, nil
+end
+
+local function writeSource(instance: Instance, newSource: string): (boolean, string?)
+	local ok, err = pcall(function()
+		(instance :: any).Source = newSource
+	end)
+	if not ok then
+		return false, "could not write .Source: " .. tostring(err)
+	end
+	return true, nil
+end
+
+function ScriptTools.editScriptLines(args: { [string]: any }): (boolean, any, string?)
+	if type(args.old_string) ~= "string" or args.old_string == "" then
+		return false, nil, "old_string is required"
+	end
+	if type(args.new_string) ~= "string" then
+		return false, nil, "new_string is required (string)"
+	end
+	local instance, source, err = readSource(args.path)
+	if not instance or source == nil then
+		return false, nil, err
+	end
+	local startLine = if type(args.start_line) == "number" then args.start_line else nil
+	local newSource, replaceErr = LineEdit.replaceText(source, args.old_string, args.new_string, startLine)
+	if newSource == nil then
+		return false, nil, replaceErr
+	end
+	local wOk, wErr = writeSource(instance, newSource)
+	if not wOk then
+		return false, nil, wErr
+	end
+	return true, { path = args.path, edited = true }, nil
+end
+
+function ScriptTools.insertScriptLines(args: { [string]: any }): (boolean, any, string?)
+	if type(args.after_line) ~= "number" then
+		return false, nil, "after_line is required (number; 0 = before the first line)"
+	end
+	if type(args.content) ~= "string" then
+		return false, nil, "content is required (string)"
+	end
+	local instance, source, err = readSource(args.path)
+	if not instance or source == nil then
+		return false, nil, err
+	end
+	local wOk, wErr = writeSource(instance, LineEdit.insertAfter(source, args.after_line, args.content))
+	if not wOk then
+		return false, nil, wErr
+	end
+	return true, { path = args.path, inserted = true }, nil
+end
+
+function ScriptTools.deleteScriptLines(args: { [string]: any }): (boolean, any, string?)
+	if type(args.start_line) ~= "number" or type(args.end_line) ~= "number" then
+		return false, nil, "start_line and end_line are required (numbers, 1-indexed inclusive)"
+	end
+	local instance, source, err = readSource(args.path)
+	if not instance or source == nil then
+		return false, nil, err
+	end
+	local wOk, wErr = writeSource(instance, LineEdit.deleteRange(source, args.start_line, args.end_line))
+	if not wOk then
+		return false, nil, wErr
+	end
+	return true, { path = args.path, deleted = true }, nil
 end
 
 return ScriptTools

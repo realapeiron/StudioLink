@@ -406,6 +406,90 @@ pub struct InputSimulateParams {
     pub between_action_delay_ms: Option<u32>,
 }
 
+// --- Attributes & Tags (v0.8.0) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct AttrPathParams {
+    /// Instance path, e.g. "Workspace.Model.Part".
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SetAttributeParams {
+    /// Instance path.
+    pub path: String,
+    /// Attribute name.
+    pub name: String,
+    /// Attribute value (number/bool/string, or an object/array for Vector3/Color3/UDim2).
+    pub value: serde_json::Value,
+    /// Optional type hint: number, boolean, Vector3, Color3, UDim2, BrickColor, Enum.
+    pub value_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct DeleteAttributeParams {
+    /// Instance path.
+    pub path: String,
+    /// Attribute name to remove.
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct BulkSetAttributesParams {
+    /// Instance path.
+    pub path: String,
+    /// Map of attribute name -> value (value may be plain, or {value, type}).
+    pub attributes: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct TagParams {
+    /// Instance path.
+    pub path: String,
+    /// CollectionService tag name.
+    pub tag: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GetTaggedParams {
+    /// CollectionService tag name.
+    pub tag: String,
+}
+
+// --- Surgical script editing (v0.8.0) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct EditScriptLinesParams {
+    /// Script instance path.
+    pub path: String,
+    /// Exact text to replace (must match the source exactly).
+    pub old_string: String,
+    /// Replacement text.
+    pub new_string: String,
+    /// Optional 1-indexed line to begin the search from (disambiguates).
+    pub start_line: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct InsertScriptLinesParams {
+    /// Script instance path.
+    pub path: String,
+    /// Insert after this 1-indexed line (0 = before the first line).
+    pub after_line: u32,
+    /// Content to insert (may be multiple lines).
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct DeleteScriptLinesParams {
+    /// Script instance path.
+    pub path: String,
+    /// First line to delete (1-indexed, inclusive).
+    pub start_line: u32,
+    /// Last line to delete (1-indexed, inclusive).
+    pub end_line: u32,
+}
+
 // --- Logs / Errors ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -1329,6 +1413,160 @@ impl StudioLinkMcp {
         .await
         {
             Ok(result) => ok_text(result),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // VIEWPORT CAPTURE (v0.8.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Capture the current Studio viewport as a PNG image (returned as an image you can see). Uses CaptureService + EditableImage in-engine — NO macOS Screen Recording / OS permission needed. Requires Edit mode with the viewport visible and Game Settings > Security > 'Allow Mesh / Image APIs' enabled. Returns at native viewport resolution."
+    )]
+    async fn viewport_capture(&self) -> Content {
+        match tools::screenshot::viewport_capture(&self.state).await {
+            Ok((png, _w, _h)) => {
+                use base64::Engine;
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&png);
+                Content::image(b64, "image/png")
+            }
+            Err(e) => Content::text(format!("Error: {}", e)),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // ATTRIBUTES & TAGS (v0.8.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(description = "Get all custom attributes on an instance (name -> {value, type}).")]
+    async fn get_attributes(&self, params: Parameters<AttrPathParams>) -> String {
+        match tools::attributes::get_attributes(&self.state, &params.0.path).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Set one custom attribute on an instance. value_type coerces typed values (Vector3/Color3/UDim2/BrickColor/Enum)."
+    )]
+    async fn set_attribute(&self, params: Parameters<SetAttributeParams>) -> String {
+        let p = params.0;
+        match tools::attributes::set_attribute(
+            &self.state,
+            &p.path,
+            &p.name,
+            p.value,
+            p.value_type.as_deref(),
+        )
+        .await
+        {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Delete a custom attribute from an instance by name.")]
+    async fn delete_attribute(&self, params: Parameters<DeleteAttributeParams>) -> String {
+        let p = params.0;
+        match tools::attributes::delete_attribute(&self.state, &p.path, &p.name).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Set many attributes on one instance in a single call. `attributes` is a map of name -> value (value may be plain, or {value, type})."
+    )]
+    async fn bulk_set_attributes(&self, params: Parameters<BulkSetAttributesParams>) -> String {
+        let p = params.0;
+        match tools::attributes::bulk_set_attributes(&self.state, &p.path, p.attributes).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Get the CollectionService tags on an instance.")]
+    async fn get_tags(&self, params: Parameters<AttrPathParams>) -> String {
+        match tools::attributes::get_tags(&self.state, &params.0.path).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Add a CollectionService tag to an instance.")]
+    async fn add_tag(&self, params: Parameters<TagParams>) -> String {
+        let p = params.0;
+        match tools::attributes::add_tag(&self.state, &p.path, &p.tag).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Remove a CollectionService tag from an instance.")]
+    async fn remove_tag(&self, params: Parameters<TagParams>) -> String {
+        let p = params.0;
+        match tools::attributes::remove_tag(&self.state, &p.path, &p.tag).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Find all instances carrying a CollectionService tag (returns full instance paths)."
+    )]
+    async fn get_tagged(&self, params: Parameters<GetTaggedParams>) -> String {
+        match tools::attributes::get_tagged(&self.state, &params.0.tag).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // SURGICAL SCRIPT EDITING (v0.8.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Replace an exact text span in a live Studio script's source (like an Edit tool — old_string must match exactly). Optional start_line anchors the search when old_string is ambiguous. Far cheaper than rewriting the whole script via set_script_source."
+    )]
+    async fn edit_script_lines(&self, params: Parameters<EditScriptLinesParams>) -> String {
+        let p = params.0;
+        match tools::scripts::edit_script_lines(
+            &self.state,
+            &p.path,
+            &p.old_string,
+            &p.new_string,
+            p.start_line,
+        )
+        .await
+        {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Insert content into a script after a given line (after_line=0 inserts before the first line). 1-indexed."
+    )]
+    async fn insert_script_lines(&self, params: Parameters<InsertScriptLinesParams>) -> String {
+        let p = params.0;
+        match tools::scripts::insert_script_lines(&self.state, &p.path, p.after_line, &p.content)
+            .await
+        {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Delete lines start_line..end_line (1-indexed, inclusive) from a script's source."
+    )]
+    async fn delete_script_lines(&self, params: Parameters<DeleteScriptLinesParams>) -> String {
+        let p = params.0;
+        match tools::scripts::delete_script_lines(&self.state, &p.path, p.start_line, p.end_line)
+            .await
+        {
+            Ok(r) => ok_text(r),
             Err(e) => err_text(e),
         }
     }

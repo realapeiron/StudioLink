@@ -429,4 +429,166 @@ function InstanceTools.deleteInstance(args: { [string]: any }): (boolean, any, s
 	}, nil
 end
 
+-- ───────────────────────── Attributes & Tags (v0.8.0) ─────────────────────────
+
+local CollectionService = game:GetService("CollectionService")
+
+function InstanceTools.getAttributes(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local out: { [string]: any } = {}
+	for k, v in pairs(instance:GetAttributes()) do
+		out[k] = { value = tostring(v), type = typeof(v) }
+	end
+	return true, { path = path, attributes = out }, nil
+end
+
+function InstanceTools.setAttribute(args: { [string]: any }): (boolean, any, string?)
+	local path, name = args.path, args.name
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	if type(name) ~= "string" or name == "" then
+		return false, nil, "name is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local val = deserializeValue(args.value, args.valueType)
+	local ok, err = pcall(function()
+		instance:SetAttribute(name, val)
+	end)
+	if not ok then
+		return false, nil, "SetAttribute failed: " .. tostring(err)
+	end
+	return true, { path = path, name = name, set = true }, nil
+end
+
+function InstanceTools.deleteAttribute(args: { [string]: any }): (boolean, any, string?)
+	local path, name = args.path, args.name
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	if type(name) ~= "string" or name == "" then
+		return false, nil, "name is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local ok, err = pcall(function()
+		instance:SetAttribute(name, nil)
+	end)
+	if not ok then
+		return false, nil, "delete attribute failed: " .. tostring(err)
+	end
+	return true, { path = path, name = name, deleted = true }, nil
+end
+
+function InstanceTools.bulkSetAttributes(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	local attributes = args.attributes
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	if type(attributes) ~= "table" then
+		return false, nil, "attributes must be a table of name -> value"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local set = 0
+	local errors: { string } = {}
+	for name, raw in pairs(attributes) do
+		-- raw may be a plain value, or { value = X, type = "Vector3" }
+		local value, vtype = raw, nil
+		if type(raw) == "table" and (raw :: any).value ~= nil then
+			value, vtype = (raw :: any).value, (raw :: any).type
+		end
+		local ok = pcall(function()
+			instance:SetAttribute(name, deserializeValue(value, vtype))
+		end)
+		if ok then
+			set += 1
+		else
+			table.insert(errors, name)
+		end
+	end
+	return true, { path = path, set = set, failed = if #errors > 0 then errors else nil }, nil
+end
+
+function InstanceTools.getTags(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	return true, { path = path, tags = CollectionService:GetTags(instance) }, nil
+end
+
+function InstanceTools.addTag(args: { [string]: any }): (boolean, any, string?)
+	local path, tag = args.path, args.tag
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	if type(tag) ~= "string" or tag == "" then
+		return false, nil, "tag is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local ok, err = pcall(function()
+		CollectionService:AddTag(instance, tag)
+	end)
+	if not ok then
+		return false, nil, "AddTag failed: " .. tostring(err)
+	end
+	return true, { path = path, tag = tag, added = true }, nil
+end
+
+function InstanceTools.removeTag(args: { [string]: any }): (boolean, any, string?)
+	local path, tag = args.path, args.tag
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	if type(tag) ~= "string" or tag == "" then
+		return false, nil, "tag is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local ok, err = pcall(function()
+		CollectionService:RemoveTag(instance, tag)
+	end)
+	if not ok then
+		return false, nil, "RemoveTag failed: " .. tostring(err)
+	end
+	return true, { path = path, tag = tag, removed = true }, nil
+end
+
+function InstanceTools.getTagged(args: { [string]: any }): (boolean, any, string?)
+	local tag = args.tag
+	if type(tag) ~= "string" or tag == "" then
+		return false, nil, "tag is required"
+	end
+	local out: { string } = {}
+	for _, inst in ipairs(CollectionService:GetTagged(tag)) do
+		table.insert(out, inst:GetFullName())
+	end
+	return true, { tag = tag, tagged = out, count = #out }, nil
+end
+
 return InstanceTools

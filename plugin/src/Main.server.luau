@@ -333,7 +333,7 @@ local SERVER_PORT = 34872
 local SERVER_URL = "http://127.0.0.1:" .. SERVER_PORT
 local POLL_INTERVAL = 0.5 -- seconds between poll retries on error
 local REGISTER_RETRY_INTERVAL = 3 -- seconds between registration retries
-local VERSION = "0.7.5"
+local VERSION = "0.8.0"
 
 -- Generate a unique session ID for this Studio instance
 local SESSION_ID = HttpService:GenerateGUID(false)
@@ -422,12 +422,27 @@ Tools["mass_set_property"] = function(args) return InstanceTools.massSetProperty
 Tools["create_instance"] = function(args) return InstanceTools.createInstance(args) end
 Tools["delete_instance"] = function(args) return InstanceTools.deleteInstance(args) end
 
+-- Attributes & Tags (v0.8.0)
+Tools["get_attributes"] = function(args) return InstanceTools.getAttributes(args) end
+Tools["set_attribute"] = function(args) return InstanceTools.setAttribute(args) end
+Tools["delete_attribute"] = function(args) return InstanceTools.deleteAttribute(args) end
+Tools["bulk_set_attributes"] = function(args) return InstanceTools.bulkSetAttributes(args) end
+Tools["get_tags"] = function(args) return InstanceTools.getTags(args) end
+Tools["add_tag"] = function(args) return InstanceTools.addTag(args) end
+Tools["remove_tag"] = function(args) return InstanceTools.removeTag(args) end
+Tools["get_tagged"] = function(args) return InstanceTools.getTagged(args) end
+
 -- Script tools (Faz 7)
 local ScriptTools = require(script.Parent.Tools.ScriptTools)
 Tools["get_script_source"] = function(args) return ScriptTools.getScriptSource(args) end
 Tools["set_script_source"] = function(args) return ScriptTools.setScriptSource(args) end
 Tools["grep_scripts"] = function(args) return ScriptTools.grepScripts(args) end
 Tools["search_objects"] = function(args) return ScriptTools.searchObjects(args) end
+
+-- Surgical script editing (v0.8.0)
+Tools["edit_script_lines"] = function(args) return ScriptTools.editScriptLines(args) end
+Tools["insert_script_lines"] = function(args) return ScriptTools.insertScriptLines(args) end
+Tools["delete_script_lines"] = function(args) return ScriptTools.deleteScriptLines(args) end
 
 -- Undo/Redo tools (Faz 7)
 local UndoRedo = require(script.Parent.Tools.UndoRedo)
@@ -454,6 +469,7 @@ Tools["ui_click"] = require(script.Parent.Tools.UiClick)
 Tools["ui_set_text"] = require(script.Parent.Tools.UiSetText)
 Tools["ui_get_state"] = require(script.Parent.Tools.UiGetState)
 Tools["input_simulate"] = require(script.Parent.Tools.InputSimulate)
+Tools["viewport_capture"] = require(script.Parent.Tools.ViewportCapture)
 
 -- Logs / errors (v0.5.0 / Faz 3)
 Tools["error_history"] = require(script.Parent.Tools.ErrorHistory)
