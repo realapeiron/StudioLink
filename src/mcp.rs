@@ -490,6 +490,38 @@ pub struct DeleteScriptLinesParams {
     pub end_line: u32,
 }
 
+// --- Discovery (v0.8.0) ---
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct InspectInstanceParams {
+    /// Instance path.
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GetDescendantsParams {
+    /// Instance path.
+    pub path: String,
+    /// Max recursion depth (default 10).
+    pub max_depth: Option<u32>,
+    /// Optional class filter (IsA — "BasePart" matches Part/MeshPart/…).
+    pub class_filter: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct SearchByPropertyParams {
+    /// Property name to match.
+    pub property_name: String,
+    /// Value to match (compared as a string).
+    pub property_value: Value,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct GetClassInfoParams {
+    /// Roblox class name (e.g. "Part", "Humanoid").
+    pub class_name: String,
+}
+
 // --- Logs / Errors ---
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
@@ -1566,6 +1598,85 @@ impl StudioLinkMcp {
         match tools::scripts::delete_script_lines(&self.state, &p.path, p.start_line, p.end_line)
             .await
         {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // DISCOVERY (v0.8.0)
+    // ═══════════════════════════════════════════
+
+    #[tool(
+        description = "Rich summary of one instance: class, custom attributes, CollectionService tags, and a compact child list. One call instead of several."
+    )]
+    async fn inspect_instance(&self, params: Parameters<InspectInstanceParams>) -> String {
+        match tools::discovery::inspect_instance(&self.state, &params.0.path).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Recursive descendants of an instance, optionally filtered by class (IsA — 'BasePart' matches Part/MeshPart). Cheaper than repeated get_instance_children calls."
+    )]
+    async fn get_descendants(&self, params: Parameters<GetDescendantsParams>) -> String {
+        let p = params.0;
+        match tools::discovery::get_descendants(
+            &self.state,
+            &p.path,
+            p.max_depth,
+            p.class_filter.as_deref(),
+        )
+        .await
+        {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "The instances currently selected in Studio.")]
+    async fn get_selection(&self) -> String {
+        match tools::discovery::get_selection(&self.state).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Find instances whose named property equals a value (compared as a string). Scans the main services."
+    )]
+    async fn search_by_property(&self, params: Parameters<SearchByPropertyParams>) -> String {
+        let p = params.0;
+        match tools::discovery::search_by_property(&self.state, &p.property_name, p.property_value)
+            .await
+        {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "The main game services and their child counts.")]
+    async fn get_services(&self) -> String {
+        match tools::discovery::get_services(&self.state).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(description = "Place id, game id, name, creator, and place version.")]
+    async fn get_place_info(&self) -> String {
+        match tools::discovery::get_place_info(&self.state).await {
+            Ok(r) => ok_text(r),
+            Err(e) => err_text(e),
+        }
+    }
+
+    #[tool(
+        description = "Validate a class name and report its IsA hierarchy (e.g. Part -> BasePart -> PVInstance -> Instance)."
+    )]
+    async fn get_class_info(&self, params: Parameters<GetClassInfoParams>) -> String {
+        match tools::discovery::get_class_info(&self.state, &params.0.class_name).await {
             Ok(r) => ok_text(r),
             Err(e) => err_text(e),
         }

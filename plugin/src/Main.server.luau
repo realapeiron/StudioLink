@@ -432,6 +432,15 @@ Tools["add_tag"] = function(args) return InstanceTools.addTag(args) end
 Tools["remove_tag"] = function(args) return InstanceTools.removeTag(args) end
 Tools["get_tagged"] = function(args) return InstanceTools.getTagged(args) end
 
+-- Discovery (v0.8.0)
+Tools["inspect_instance"] = function(args) return InstanceTools.inspectInstance(args) end
+Tools["get_descendants"] = function(args) return InstanceTools.getDescendants(args) end
+Tools["get_selection"] = function(args) return InstanceTools.getSelection(args) end
+Tools["search_by_property"] = function(args) return InstanceTools.searchByProperty(args) end
+Tools["get_services"] = function(args) return InstanceTools.getServices(args) end
+Tools["get_place_info"] = function(args) return InstanceTools.getPlaceInfo(args) end
+Tools["get_class_info"] = function(args) return InstanceTools.getClassInfo(args) end
+
 -- Script tools (Faz 7)
 local ScriptTools = require(script.Parent.Tools.ScriptTools)
 Tools["get_script_source"] = function(args) return ScriptTools.getScriptSource(args) end

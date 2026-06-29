@@ -591,4 +591,187 @@ function InstanceTools.getTagged(args: { [string]: any }): (boolean, any, string
 	return true, { tag = tag, tagged = out, count = #out }, nil
 end
 
+-- ───────────────────────── Discovery (v0.8.0) ─────────────────────────
+
+local DISCOVERY_SERVICES = {
+	"Workspace",
+	"Players",
+	"ReplicatedStorage",
+	"ReplicatedFirst",
+	"ServerScriptService",
+	"ServerStorage",
+	"StarterGui",
+	"StarterPack",
+	"StarterPlayer",
+	"Lighting",
+	"SoundService",
+	"Teams",
+}
+
+function InstanceTools.inspectInstance(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local attrs: { [string]: any } = {}
+	for k, v in pairs(instance:GetAttributes()) do
+		attrs[k] = { value = tostring(v), type = typeof(v) }
+	end
+	local children: { any } = {}
+	for _, c in ipairs(instance:GetChildren()) do
+		table.insert(children, { name = c.Name, className = c.ClassName })
+	end
+	return true,
+		{
+			path = path,
+			name = instance.Name,
+			className = instance.ClassName,
+			fullName = instance:GetFullName(),
+			attributes = attrs,
+			tags = CollectionService:GetTags(instance),
+			childCount = #children,
+			children = children,
+		},
+		nil
+end
+
+function InstanceTools.getDescendants(args: { [string]: any }): (boolean, any, string?)
+	local path = args.path
+	if type(path) ~= "string" or path == "" then
+		return false, nil, "path is required"
+	end
+	local maxDepth = if type(args.maxDepth) == "number" then args.maxDepth else 10
+	local classFilter = if type(args.classFilter) == "string" then args.classFilter else nil
+	local instance = resolvePath(path)
+	if not instance then
+		return false, nil, "Instance not found: " .. path
+	end
+	local results: { any } = {}
+	local function walk(inst: Instance, depth: number)
+		if depth > maxDepth or #results >= 1000 then
+			return
+		end
+		for _, c in ipairs(inst:GetChildren()) do
+			if classFilter == nil or c:IsA(classFilter) then
+				table.insert(results, {
+					path = c:GetFullName(),
+					name = c.Name,
+					className = c.ClassName,
+					depth = depth,
+				})
+			end
+			walk(c, depth + 1)
+		end
+	end
+	walk(instance, 1)
+	return true, { path = path, count = #results, descendants = results }, nil
+end
+
+function InstanceTools.getSelection(_args: { [string]: any }): (boolean, any, string?)
+	local ok, selection = pcall(function()
+		return game:GetService("Selection"):Get()
+	end)
+	if not ok then
+		return false, nil, "could not read Studio selection"
+	end
+	local out: { any } = {}
+	for _, inst in ipairs(selection) do
+		table.insert(out, { path = inst:GetFullName(), name = inst.Name, className = inst.ClassName })
+	end
+	return true, { count = #out, selection = out }, nil
+end
+
+function InstanceTools.searchByProperty(args: { [string]: any }): (boolean, any, string?)
+	local propName = args.propertyName
+	if type(propName) ~= "string" or propName == "" then
+		return false, nil, "propertyName is required"
+	end
+	local target = tostring(args.propertyValue)
+	local results: { any } = {}
+	for _, svcName in ipairs(DISCOVERY_SERVICES) do
+		local svcOk, svc = pcall(function()
+			return game:GetService(svcName :: any)
+		end)
+		if svcOk and svc then
+			for _, desc in ipairs(svc:GetDescendants()) do
+				if #results >= 200 then
+					break
+				end
+				local readOk, val = pcall(function()
+					return (desc :: any)[propName]
+				end)
+				if readOk and tostring(val) == target then
+					table.insert(results, { path = desc:GetFullName(), className = desc.ClassName })
+				end
+			end
+		end
+	end
+	return true,
+		{ propertyName = propName, value = target, count = #results, truncated = #results >= 200, results = results },
+		nil
+end
+
+function InstanceTools.getServices(_args: { [string]: any }): (boolean, any, string?)
+	local out: { any } = {}
+	for _, name in ipairs(DISCOVERY_SERVICES) do
+		local ok, svc = pcall(function()
+			return game:GetService(name :: any)
+		end)
+		if ok and svc then
+			table.insert(out, { name = name, className = svc.ClassName, childCount = #svc:GetChildren() })
+		end
+	end
+	return true, { services = out }, nil
+end
+
+function InstanceTools.getPlaceInfo(_args: { [string]: any }): (boolean, any, string?)
+	return true,
+		{
+			placeId = game.PlaceId,
+			gameId = game.GameId,
+			name = game.Name,
+			creatorId = game.CreatorId,
+			creatorType = tostring(game.CreatorType),
+			placeVersion = game.PlaceVersion,
+		},
+		nil
+end
+
+function InstanceTools.getClassInfo(args: { [string]: any }): (boolean, any, string?)
+	local className = args.className
+	if type(className) ~= "string" or className == "" then
+		return false, nil, "className is required"
+	end
+	local ok, instance = pcall(function()
+		return Instance.new(className :: any)
+	end)
+	if not ok or not instance then
+		return false, nil, "invalid or non-instantiable class: " .. className
+	end
+	local isA: { string } = {}
+	for _, base in
+		ipairs({
+			"Instance",
+			"BasePart",
+			"GuiObject",
+			"GuiBase2d",
+			"LuaSourceContainer",
+			"ValueBase",
+			"Constraint",
+			"Light",
+			"PVInstance",
+		})
+	do
+		if instance:IsA(base) then
+			table.insert(isA, base)
+		end
+	end
+	instance:Destroy()
+	return true, { className = className, valid = true, isA = isA }, nil
+end
+
 return InstanceTools

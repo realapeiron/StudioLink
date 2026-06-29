@@ -8,6 +8,7 @@ pub mod datastore;
 pub mod debug;
 pub mod dependencies;
 pub mod diffing;
+pub mod discovery;
 pub mod docs;
 pub mod history;
 pub mod input;
