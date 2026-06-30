@@ -1,12 +1,12 @@
 # StudioLink
 
-**Advanced Roblox Studio MCP Server — 65 tools for professional game development with AI, multi-chat capable**
+**Advanced Roblox Studio MCP Server — 90 tools for professional game development with AI, multi-chat capable**
 
-StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 64 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
+StudioLink is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server built in Rust that connects AI assistants (Claude, Cursor, etc.) directly to Roblox Studio. It provides 90 specialized tools covering code execution, in-game automation (character control, UI manipulation, input simulation), **viewport capture** (in-engine, no OS permission), **attributes & tags**, **surgical script editing**, **scene discovery** (inspect/descendants/search), debugging (error history, script patching, microprofiling), play testing, multi-client orchestration, place publishing, asset auditing, security scanning, performance profiling, DataStore debugging, and much more.
 
 ## Why StudioLink?
 
-Roblox's official MCP server provides 6 basic tools. StudioLink gives you **65 tools** with features like:
+Roblox's official MCP server provides 6 basic tools. StudioLink gives you **90 tools** with features like:
 
 - Execute code in **Server context during play mode** (not just Edit mode)
 - Multi-instance support — manage multiple Studio windows simultaneously
@@ -175,6 +175,45 @@ debug_routing()                                          # inspect the routing l
 | `crash_dump` | Snapshot recent log activity within a time window (default 30s) with the error subset isolated and stack-trace patterns flagged. Studio process crashes are NOT accessible from plugin context. |
 | `script_patch` | Replace a Script/LocalScript/ModuleScript's source with diff stats and ChangeHistoryService waypoints. NOT live hot-reload — requires next require() / play restart. |
 | `microprofiler_capture` | Wrap a Luau code block in debug.profilebegin/end and measure wall time + Lua heap delta. Script-level only — Studio's MicroProfiler GUI export is not exposed. |
+
+### Viewport Capture (1 tool, v0.8.0)
+| Tool | Description |
+|------|-------------|
+| `viewport_capture` | Capture the Studio viewport as a PNG, returned as an image the model can see. Fully in-engine (CaptureService + EditableImage) — **no OS Screen Recording permission**. Edit mode, native resolution; needs Game Settings > Security > "Allow Mesh / Image APIs". |
+
+### Attributes & Tags (8 tools, v0.8.0)
+| Tool | Description |
+|------|-------------|
+| `get_attributes` / `set_attribute` / `delete_attribute` / `bulk_set_attributes` | Read and write instance attributes; typed values (Vector3/Color3/UDim2/BrickColor/Enum) via `value_type` coercion. |
+| `get_tags` / `add_tag` / `remove_tag` / `get_tagged` | CollectionService tags — read, add, remove, and find all instances carrying a tag. |
+
+### Surgical Script Editing (3 tools, v0.8.0)
+| Tool | Description |
+|------|-------------|
+| `edit_script_lines` | Exact-text replace in a live script with an optional `start_line` anchor. An Edit-tool for scripts — cheaper than rewriting via `set_script_source`. |
+| `insert_script_lines` | Insert content after a line (`after_line=0` = before the first line). |
+| `delete_script_lines` | Delete lines `start_line..end_line` (1-indexed, inclusive). |
+
+### Discovery (7 tools, v0.8.0)
+| Tool | Description |
+|------|-------------|
+| `inspect_instance` | Rich one-call summary: class, attributes, tags, and a compact child list. |
+| `get_descendants` | Recursive descendants, optional IsA class filter, depth/count bounded. |
+| `get_selection` | The instances currently selected in Studio. |
+| `search_by_property` | Find instances whose named property equals a value, across the main services. |
+| `get_services` / `get_place_info` / `get_class_info` | Service child counts; place id/name/creator/version; class validation + IsA hierarchy. |
+
+### Find & Replace (1 tool, v0.8.0)
+| Tool | Description |
+|------|-------------|
+| `find_and_replace_in_scripts` | Project-wide find/replace across all scripts. Literal or Lua-pattern, `dry_run` preview, `path` scoping, `max_replacements` cap. |
+
+### Mass Operations (3 tools, v0.8.0)
+| Tool | Description |
+|------|-------------|
+| `clone_object` | Deep-copy an instance (and its descendants) under a parent. |
+| `mass_get_property` | Read one property across many instances in a single call. |
+| `smart_duplicate` | Duplicate N times with a name pattern (`{n}` → index) and a cumulative position offset per copy. |
 
 ## Architecture
 
